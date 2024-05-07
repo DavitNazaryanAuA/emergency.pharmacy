@@ -26,6 +26,8 @@ public abstract class ApiException extends RuntimeException {
         BAD_REQUEST,
         INTERNAL_SERVER_ERROR,
         UNAUTHORIZED,
-        FORBIDDEN
+        FORBIDDEN,
+        NOT_ENOUGH_ITEMS,
+        MULTIPLE_MACHINES_TO_CART
     }
 }

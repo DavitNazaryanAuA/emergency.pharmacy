@@ -6,12 +6,10 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -21,8 +19,6 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
-
-import static com.capstone.emergency.pharmacy.core.user.repository.Permissions.ADD_ITEM;
 
 @Configuration
 @EnableWebSecurity
@@ -40,12 +36,10 @@ public class SecurityConfig {
 //                        .requestMatchers(HttpMethod.POST, "api/auth/v1/**").permitAll()
 //                        .requestMatchers(HttpMethod.POST, "api/item/v1/").hasAuthority(ADD_ITEM)
 //                        .requestMatchers(HttpMethod.POST, "api/item/v1/product").hasAuthority(ADD_ITEM)
-                        .anyRequest()
+                                .anyRequest()
                                 .permitAll()
-//                                .authenticated()
                 )
                 .oauth2ResourceServer(oath2 -> oath2.jwt(Customizer.withDefaults()))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .build();
     }
 

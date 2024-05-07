@@ -1,12 +1,16 @@
 package com.capstone.emergency.pharmacy.core.vending.service;
 
+import com.capstone.emergency.pharmacy.core.error.ApiException;
+import com.capstone.emergency.pharmacy.core.error.BadRequestException;
 import com.capstone.emergency.pharmacy.core.error.NotFoundException;
 import com.capstone.emergency.pharmacy.core.item.repository.model.Item;
+import com.capstone.emergency.pharmacy.core.vending.repository.CartItemRedisOperations;
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineItemRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.model.VendingMachineEntity;
 import com.capstone.emergency.pharmacy.core.vending.repository.model.VendingMachineItem;
 import com.capstone.emergency.pharmacy.core.vending.service.mapper.VMMapper;
+import com.capstone.emergency.pharmacy.core.vending.service.model.AddItemToCardCommand;
 import com.capstone.emergency.pharmacy.core.vending.service.model.LoadItemsCommand;
 import com.capstone.emergency.pharmacy.core.vending.service.model.Location;
 import com.capstone.emergency.pharmacy.core.vending.service.model.VendingMachine;
@@ -23,6 +27,7 @@ public class VendingMachineService {
 
     private final VendingMachineRepository repository;
     private final VendingMachineItemRepository itemRepository;
+    private final CartItemRedisOperations cartItemRedisOperations;
     private final VMMapper mapper;
 
     public VendingMachine registerVendingMachine(Location location) {
@@ -87,4 +92,27 @@ public class VendingMachineService {
         }
     }
 
+    public void addItemToCart(
+            String userId,
+            Long vendingMachineId,
+            AddItemToCardCommand addItemToCardCommand
+    ) {
+        final var machineItem = itemRepository
+                .findByVendingMachineId(vendingMachineId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Item" + addItemToCardCommand.itemId() + " not found in machine: " + vendingMachineId
+                ));
+
+        if (machineItem.getQuantity() < addItemToCardCommand.quantity()) {
+            throw new BadRequestException(
+                    "Not enough items: " + machineItem.getQuantity() + ", requested: " + addItemToCardCommand.quantity(),
+                    ApiException.Reason.NOT_ENOUGH_ITEMS
+            );
+        }
+
+        cartItemRedisOperations.addItemToCart(
+                userId,
+                mapper.toCartItem(addItemToCardCommand, vendingMachineId)
+        );
+    }
 }

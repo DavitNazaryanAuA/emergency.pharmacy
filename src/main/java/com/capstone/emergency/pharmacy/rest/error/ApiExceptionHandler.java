@@ -33,7 +33,6 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler
     protected ResponseEntity<ApiFailureDto> handleRuntimeException(RuntimeException ex) {
-        System.out.println(ex);
         return ResponseEntity
                 .internalServerError()
                 .body(new ApiFailureDto(INTERNAL_SERVER_ERROR_MESSAGE, INTERNAL_SERVER_ERROR_REASON));

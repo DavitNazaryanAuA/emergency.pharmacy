@@ -1,6 +1,7 @@
 package com.capstone.emergency.pharmacy.rest.controller.vending;
 
 import com.capstone.emergency.pharmacy.core.vending.service.VendingMachineService;
+import com.capstone.emergency.pharmacy.core.vending.service.model.AddItemToCardCommand;
 import com.capstone.emergency.pharmacy.core.vending.service.model.LoadItemsCommand;
 import com.capstone.emergency.pharmacy.core.vending.service.model.Location;
 import com.capstone.emergency.pharmacy.core.vending.service.model.VendingMachine;
@@ -70,5 +71,19 @@ public class VendingMachineController {
         return ResponseEntity.ok(
                 new VendingMachineLoadedItemsResponse(id, itemsResponse)
         );
+    }
+
+    @PostMapping("/{id}/cart")
+    public ResponseEntity<Void> addItemToCard(
+            @PathVariable("id") Long id,
+            @RequestHeader("user-id") String userId,
+            @RequestBody @Valid AddItemToCardCommand addItemToCardCommand
+    ) {
+        service.addItemToCart(
+                userId,
+                id,
+                addItemToCardCommand
+        );
+        return ResponseEntity.ok().build();
     }
 }
