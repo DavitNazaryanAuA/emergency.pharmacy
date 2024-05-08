@@ -23,26 +23,20 @@ public class ItemService {
     private final ItemMapper mapper;
 
     public Item addItem(AddItemCommand addItemCommand) {
+        final var product = productRepository
+                .findById(addItemCommand.productId())
+                .orElseThrow(() -> new NotFoundException("Product with id: " + addItemCommand.productId() + " not found"));
+
         final var item = Item
                 .builder()
                 .packSize(addItemCommand.packSize())
                 .price(addItemCommand.price())
                 .dose(mapper.toDoseEntity(addItemCommand.dose()))
                 .type(addItemCommand.type())
-                .product(
-                        Product.builder().id(addItemCommand.productId()).build()
-                )
+                .product(product)
                 .build();
 
-        try {
-            return itemRepository.save(item);
-        } catch (DataIntegrityViolationException e) {
-            final var message = e.getMessage();
-            if (message.contains(NON_EXISTENT_PRODUCT_MESSAGE)) {
-                throw new NotFoundException("Product with id: " + addItemCommand.productId() + " not found");
-            }
-            throw new RuntimeException("Unknown error occurred");
-        }
+        return itemRepository.save(item);
     }
 
     public Product addProduct(AddProductCommand addProductCommand) {

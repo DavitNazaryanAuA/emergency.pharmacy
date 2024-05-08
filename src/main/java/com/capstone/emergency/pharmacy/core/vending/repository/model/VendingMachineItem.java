@@ -24,7 +24,6 @@ public class VendingMachineItem {
     private Long vendingMachineId;
 
     @ManyToOne
-    @Fetch(value = FetchMode.SELECT)
     @JoinColumn(name = "item_id", referencedColumnName = "id", nullable = false)
     private Item item;
 

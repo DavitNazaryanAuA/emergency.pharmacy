@@ -6,7 +6,6 @@ import com.capstone.emergency.pharmacy.core.error.NotFoundException;
 import com.capstone.emergency.pharmacy.core.error.UnauthorizedException;
 import com.capstone.emergency.pharmacy.core.user.repository.User;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +20,8 @@ public class JwtService {
     private final RefreshTokenRepository refreshTokenRepository;
 
     public String[] accessRefreshPair(User user) {
-        final var accessExp = Instant.now().plus(20, ChronoUnit.SECONDS);
+//        TODO change exp to 10 minutes after development
+        final var accessExp = Instant.now().plus(20, ChronoUnit.DAYS);
         final var refreshExp = Instant.now().plus(7, ChronoUnit.DAYS);
 
         final var refreshToken = generateToken(user, refreshExp);
@@ -38,7 +38,6 @@ public class JwtService {
     }
 
     public Jwt validateRefresh(String refreshToken) {
-        System.out.println(refreshToken);
         final var token = jwtDecoder.decode(refreshToken);
         final var isExpired = token.getExpiresAt().isBefore(Instant.now());
 
@@ -68,14 +67,12 @@ public class JwtService {
     }
 
     private String generateToken(User user, Instant exp) {
-        final var permissions = user
+        final var role = user
                 .getRole()
-                .getAuthorities()
-                .stream()
-                .map(SimpleGrantedAuthority::getAuthority).toList();
+                .name();
 
         final var token = JwtClaimsSet.builder()
-                .claim("permissions", permissions)
+                .claim("role", role)
                 .issuer("self")
                 .issuedAt(Instant.now())
                 .expiresAt(exp)

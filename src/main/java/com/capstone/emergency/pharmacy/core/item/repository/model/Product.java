@@ -3,11 +3,14 @@ package com.capstone.emergency.pharmacy.core.item.repository.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Entity
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
+@Setter
 @ToString
 @Table(name = "product")
 public class Product {
@@ -51,4 +54,8 @@ public class Product {
             columnDefinition = "TEXT"
     )
     private String composition;
+
+    @OneToMany(mappedBy = "product")
+    @ToString.Exclude
+    private List<Item> items;
 }

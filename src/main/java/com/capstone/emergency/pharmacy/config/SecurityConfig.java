@@ -1,11 +1,13 @@
 package com.capstone.emergency.pharmacy.config;
 
+import com.capstone.emergency.pharmacy.core.user.repository.Role;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -33,11 +35,21 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-//                        .requestMatchers(HttpMethod.POST, "api/auth/v1/**").permitAll()
-//                        .requestMatchers(HttpMethod.POST, "api/item/v1/").hasAuthority(ADD_ITEM)
-//                        .requestMatchers(HttpMethod.POST, "api/item/v1/product").hasAuthority(ADD_ITEM)
-                                .anyRequest()
+                                .requestMatchers(HttpMethod.POST, "api/auth/v1/**")
                                 .permitAll()
+                                .requestMatchers(HttpMethod.POST, "api/item/v1/")
+                                .permitAll()
+//                        .hasAuthority(Role.ADMIN.name())
+                                .requestMatchers(HttpMethod.POST, "api/item/v1/product")
+                                .permitAll()
+//                                .hasAuthority(Role.ADMIN.name())
+                                .requestMatchers(HttpMethod.POST, "api/vm/v1/")
+                                .permitAll()
+//                                .hasAuthority(Role.ADMIN.name())
+                                .requestMatchers(HttpMethod.POST, "api/vm/v1/{id}/items")
+                                .permitAll()
+//                                .hasAuthority(Role.ADMIN.name())
+                                .anyRequest().hasAuthority(Role.USER.name())
                 )
                 .oauth2ResourceServer(oath2 -> oath2.jwt(Customizer.withDefaults()))
                 .build();
@@ -67,7 +79,7 @@ public class SecurityConfig {
     public JwtAuthenticationConverter customJwtAuthenticationConverter() {
         final var grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
         grantedAuthoritiesConverter.setAuthorityPrefix("");
-        grantedAuthoritiesConverter.setAuthoritiesClaimName("permissions");
+        grantedAuthoritiesConverter.setAuthoritiesClaimName("role");
 
         final var converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);

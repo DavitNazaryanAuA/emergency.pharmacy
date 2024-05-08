@@ -11,6 +11,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.validator.constraints.Range;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -76,9 +78,12 @@ public class VendingMachineController {
     @PostMapping("/{id}/cart")
     public ResponseEntity<Void> addItemToCard(
             @PathVariable("id") Long id,
-            @RequestHeader("user-id") String userId,
             @RequestBody @Valid AddItemToCardCommand addItemToCardCommand
     ) {
+        final var auth = SecurityContextHolder.getContext().getAuthentication();
+        final var jwt = (Jwt) auth.getPrincipal();
+        final var userId = jwt.getSubject();
+
         service.addItemToCart(
                 userId,
                 id,

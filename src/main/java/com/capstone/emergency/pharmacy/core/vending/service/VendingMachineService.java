@@ -3,6 +3,7 @@ package com.capstone.emergency.pharmacy.core.vending.service;
 import com.capstone.emergency.pharmacy.core.error.ApiException;
 import com.capstone.emergency.pharmacy.core.error.BadRequestException;
 import com.capstone.emergency.pharmacy.core.error.NotFoundException;
+import com.capstone.emergency.pharmacy.core.item.repository.ItemRepository;
 import com.capstone.emergency.pharmacy.core.item.repository.model.Item;
 import com.capstone.emergency.pharmacy.core.vending.repository.CartItemRedisOperations;
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineItemRepository;
@@ -19,14 +20,16 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.stream.IntStream;
 
 @RequiredArgsConstructor
 @Service
 public class VendingMachineService {
-    private final static String NON_EXISTENT_ITEM_MESSAGE = "is not present in table \"item\"";
-
     private final VendingMachineRepository repository;
-    private final VendingMachineItemRepository itemRepository;
+    private final VendingMachineItemRepository vendingMachineItemRepository;
+    private final ItemRepository itemRepository;
     private final CartItemRedisOperations cartItemRedisOperations;
     private final VMMapper mapper;
 
@@ -64,32 +67,33 @@ public class VendingMachineService {
         final var machine = repository.findById(vendingMachineId)
                 .orElseThrow(() -> new NotFoundException("Vending Machine not found"));
 
-        final var machineItems = loadedItems
+        final var futures = loadedItems
                 .stream()
-                .map(loadedItem ->
-                        VendingMachineItem.builder()
-                                .item(
-                                        Item.builder().id(loadedItem.itemId()).build()
-                                )
-                                .vendingMachineId(machine.getId())
-                                .quantity(loadedItem.quantity())
-                                .build()
+                .map(item ->
+                        CompletableFuture.supplyAsync(() ->
+                                itemRepository
+                                        .findById(item.itemId())
+                                        .orElseThrow(() -> new RuntimeException("Item with id: " + item.itemId() + " not found"))
+                        )
                 )
                 .toList();
 
+        List<Item> items;
         try {
-            return itemRepository.saveAll(machineItems);
-        } catch (DataIntegrityViolationException ex) {
-            final var message = ex.getMostSpecificCause().getMessage();
-            if (message.contains(NON_EXISTENT_ITEM_MESSAGE)) {
-                int id_start = message.indexOf('=') + 2;
-                int id_end = message.lastIndexOf(')');
-                String id = message.substring(id_start, id_end);
-
-                throw new NotFoundException("Item with id: " + id + " not found");
-            }
-            throw new RuntimeException("Unknown error occurred");
+            items = futures.stream().map(CompletableFuture::join).toList();
+        } catch (CompletionException ex) {
+            throw new NotFoundException(ex.getCause().getMessage());
         }
+
+        final var machineItems = IntStream.range(0, items.size()).mapToObj(i ->
+                VendingMachineItem.builder()
+                        .item(items.get(i))
+                        .vendingMachineId(machine.getId())
+                        .quantity(loadedItems.get(i).quantity())
+                        .build()
+        ).toList();
+
+        return vendingMachineItemRepository.saveAll(machineItems);
     }
 
     public void addItemToCart(
@@ -97,7 +101,7 @@ public class VendingMachineService {
             Long vendingMachineId,
             AddItemToCardCommand addItemToCardCommand
     ) {
-        final var machineItem = itemRepository
+        final var machineItem = vendingMachineItemRepository
                 .findByVendingMachineId(vendingMachineId)
                 .orElseThrow(() -> new NotFoundException(
                         "Item" + addItemToCardCommand.itemId() + " not found in machine: " + vendingMachineId
