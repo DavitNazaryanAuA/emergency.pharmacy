@@ -10,6 +10,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.validator.constraints.Range;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -70,5 +72,17 @@ public class VendingMachineController {
         return ResponseEntity.ok(
                 new VendingMachineLoadedItemsResponse(id, itemsResponse)
         );
+    }
+
+    @PostMapping("/{id}/lock")
+    public ResponseEntity<Void> lockMachine(
+            @PathVariable("id") Long id
+    ) {
+        final var auth = SecurityContextHolder.getContext().getAuthentication();
+        final var jwt = (Jwt) auth.getPrincipal();
+        final var userId = jwt.getSubject();
+
+        service.lockVendingMachine(id, userId);
+        return ResponseEntity.ok().build();
     }
 }

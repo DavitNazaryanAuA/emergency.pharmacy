@@ -4,6 +4,7 @@ import com.capstone.emergency.pharmacy.core.error.NotFoundException;
 import com.capstone.emergency.pharmacy.core.item.repository.ItemRepository;
 import com.capstone.emergency.pharmacy.core.item.repository.model.Item;
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineItemRepository;
+import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineRedisRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.model.VendingMachineEntity;
 import com.capstone.emergency.pharmacy.core.vending.repository.model.VendingMachineItem;
@@ -26,6 +27,7 @@ public class VendingMachineService {
     private final VendingMachineRepository repository;
     private final VendingMachineItemRepository vendingMachineItemRepository;
     private final ItemRepository itemRepository;
+    private final VendingMachineRedisRepository vendingMachineRedisRepository;
     private final VMMapper mapper;
 
     public VendingMachine registerVendingMachine(Location location) {
@@ -89,5 +91,13 @@ public class VendingMachineService {
         ).toList();
 
         return vendingMachineItemRepository.saveAll(machineItems);
+    }
+
+    public void lockVendingMachine(Long vendingMachineId, String userId) {
+        repository.findById(vendingMachineId).orElseThrow(() ->
+                new NotFoundException("Vending machine: " + vendingMachineId + " not found")
+        );
+
+        vendingMachineRedisRepository.lockMachine(vendingMachineId, userId);
     }
 }

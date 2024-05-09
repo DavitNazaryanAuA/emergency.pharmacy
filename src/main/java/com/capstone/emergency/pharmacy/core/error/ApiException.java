@@ -28,6 +28,7 @@ public abstract class ApiException extends RuntimeException {
         UNAUTHORIZED,
         FORBIDDEN,
         NOT_ENOUGH_ITEMS,
+        MACHINE_ALREADY_LOCKED,
         MULTIPLE_MACHINES_TO_CART
     }
 }
