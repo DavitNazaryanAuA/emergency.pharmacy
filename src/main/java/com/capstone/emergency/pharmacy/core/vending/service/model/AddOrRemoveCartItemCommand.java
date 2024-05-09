@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public record AddItemToCardCommand(
+public record AddOrRemoveCartItemCommand(
         @NotNull
         Long itemId,
         @Positive

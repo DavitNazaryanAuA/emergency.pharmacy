@@ -13,7 +13,7 @@ import org.springframework.data.redis.core.RedisHash;
 @Getter
 @ToString
 @Entity
-@Table(name = "vending_machine_item")
+@Table(name = "vending_machine_item", indexes = @Index(name = "idx_machineId_itemId", columnList = "vendingMachineId, item_id", unique = true))
 public class VendingMachineItem {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

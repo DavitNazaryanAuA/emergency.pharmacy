@@ -9,5 +9,5 @@ import java.util.Optional;
 @Repository
 public interface VendingMachineItemRepository extends JpaRepository<VendingMachineItem, Long> {
 
-    Optional<VendingMachineItem> findByVendingMachineId(Long vendingMachineId);
+    Optional<VendingMachineItem> findByVendingMachineIdAndItem_Id(Long vendingMachineId, Long itemId);
 }

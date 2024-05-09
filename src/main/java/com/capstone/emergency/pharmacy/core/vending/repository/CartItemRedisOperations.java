@@ -1,14 +1,13 @@
 package com.capstone.emergency.pharmacy.core.vending.repository;
 
-import com.capstone.emergency.pharmacy.core.error.ApiException;
-import com.capstone.emergency.pharmacy.core.error.BadRequestException;
 import com.capstone.emergency.pharmacy.core.vending.repository.model.CartItem;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.ListOperations;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
@@ -18,24 +17,51 @@ public class CartItemRedisOperations {
     @Value("${redis.cart.prefix}")
     private String cartItemPrefix;
 
-    final private ListOperations<String, Object> listOperations;
     final private RedisTemplate<String, Object> redisTemplate;
+    final private HashOperations<String, String, Integer> hashOperations;
 
-    public void addItemToCart(String userId, CartItem item) {
-        String key = cartItemPrefix + ":" + userId;
-        final var previous = listOperations.range(key, 0, 1);
-        if (previous != null && !previous.isEmpty()) {
-            final var casted = (CartItem) previous.get(0);
-            if (!casted.getVendingMachineId().equals(item.getVendingMachineId())) {
-                throw new BadRequestException("Cant have items from different machines", ApiException.Reason.MULTIPLE_MACHINES_TO_CART);
-            }
+    public Integer itemQuantityInCart(String userId, Long itemId, Long vendingMachineId) {
+        String hashKey = cartItemPrefix + ":" + userId;
+        String key = itemId.toString() + ":" + vendingMachineId;
+        Integer inCart = hashOperations.get(hashKey, key);
+
+        return inCart == null ? 0 : inCart;
+    }
+
+    public void addItemToCart(String userId, Long itemId, Long vendingMachineId, Integer quantity) {
+        String hashKey = cartItemPrefix + ":" + userId;
+        String key = itemId.toString() + ":" + vendingMachineId;
+
+        hashOperations.put(hashKey, key, quantity);
+        redisTemplate.expire(hashKey, 15, TimeUnit.MINUTES);
+    }
+
+    public void removeItemFromCart(String userId, Long itemId, Long vendingMachineId, Integer quantity) {
+        String hashKey = cartItemPrefix + ":" + userId;
+        String key = itemId.toString() + ":" + vendingMachineId;
+
+        final var existing = hashOperations.get(hashKey, key);
+        if (existing == null) return;
+        if (existing > quantity) {
+            hashOperations.put(hashKey, key, existing - quantity);
+        } else {
+            hashOperations.delete(hashKey, key);
         }
-        listOperations.leftPush(key, item);
-        redisTemplate.expire(key, 15, TimeUnit.MINUTES);
+        redisTemplate.expire(hashKey, 15, TimeUnit.MINUTES);
+    }
 
-        System.out.println("Item");
-        System.out.println(listOperations.range(key, 0, 1));
-        System.out.println("Exp");
-        System.out.println(redisTemplate.getExpire(key));
+    public List<CartItem> getCartItems(String userId) {
+        String key = cartItemPrefix + ":" + userId;
+        final var items = hashOperations.entries(key);
+        return items.entrySet().stream().map(entry -> {
+                    final var ids = entry.getKey().split(":");
+                    return CartItem
+                            .builder()
+                            .itemId(Long.parseLong(ids[0]))
+                            .vendingMachineId(Long.parseLong(ids[1]))
+                            .quantity(entry.getValue())
+                            .build();
+                }
+        ).toList();
     }
 }

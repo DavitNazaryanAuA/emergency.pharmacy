@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
-import org.springframework.data.redis.core.ListOperations;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 
 @Configuration
@@ -33,7 +33,7 @@ public class RedisConfig {
     }
 
     @Bean
-    public ListOperations<String, Object> redisListOperations(RedisTemplate<String, Object> redisTemplate) {
-        return redisTemplate.opsForList();
+    public HashOperations<String, String, Integer> redisHashOperations(RedisTemplate<String, Object> redisTemplate) {
+        return redisTemplate.opsForHash();
     }
 }
