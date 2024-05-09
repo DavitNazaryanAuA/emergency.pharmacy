@@ -1,22 +1,16 @@
 package com.capstone.emergency.pharmacy.core.vending.service;
 
-import com.capstone.emergency.pharmacy.core.error.ApiException;
-import com.capstone.emergency.pharmacy.core.error.BadRequestException;
 import com.capstone.emergency.pharmacy.core.error.NotFoundException;
 import com.capstone.emergency.pharmacy.core.item.repository.ItemRepository;
 import com.capstone.emergency.pharmacy.core.item.repository.model.Item;
-import com.capstone.emergency.pharmacy.core.vending.repository.CartItemRedisOperations;
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineItemRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineRepository;
-import com.capstone.emergency.pharmacy.core.vending.repository.model.CartItem;
 import com.capstone.emergency.pharmacy.core.vending.repository.model.VendingMachineEntity;
 import com.capstone.emergency.pharmacy.core.vending.repository.model.VendingMachineItem;
 import com.capstone.emergency.pharmacy.core.vending.service.mapper.VMMapper;
-import com.capstone.emergency.pharmacy.core.vending.service.model.Cart;
 import com.capstone.emergency.pharmacy.core.vending.service.model.LoadItemsCommand;
 import com.capstone.emergency.pharmacy.core.vending.service.model.Location;
 import com.capstone.emergency.pharmacy.core.vending.service.model.VendingMachine;
-import com.capstone.emergency.pharmacy.rest.controller.item.model.mapper.ItemDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -32,9 +26,7 @@ public class VendingMachineService {
     private final VendingMachineRepository repository;
     private final VendingMachineItemRepository vendingMachineItemRepository;
     private final ItemRepository itemRepository;
-    private final CartItemRedisOperations cartItemRedisOperations;
     private final VMMapper mapper;
-    private final ItemDtoMapper itemDtoMapper;
 
     public VendingMachine registerVendingMachine(Location location) {
         final var locationEntity = mapper.toLocationEntity(location);
@@ -97,61 +89,5 @@ public class VendingMachineService {
         ).toList();
 
         return vendingMachineItemRepository.saveAll(machineItems);
-    }
-
-    public void addItemToCart(
-            String userId,
-            Long vendingMachineId,
-            Long itemId,
-            Integer quantity
-    ) {
-        final var machineItem = vendingMachineItemRepository
-                .findByVendingMachineIdAndItem_Id(vendingMachineId, itemId)
-                .orElseThrow(() -> new NotFoundException(
-                        "Item" + itemId + " not found in machine: " + vendingMachineId
-                ));
-
-        final var inMachine = machineItem.getQuantity();
-        final var inCart = cartItemRedisOperations.itemQuantityInCart(userId, itemId, vendingMachineId);
-
-        if (inMachine - inCart < quantity) {
-            throw new BadRequestException(
-                    "Not enough items: " + machineItem.getQuantity() +
-                            ", requested: " + quantity +
-                            ", in cart: " + inCart,
-                    ApiException.Reason.NOT_ENOUGH_ITEMS
-            );
-        }
-
-        cartItemRedisOperations.addItemToCart(userId, itemId, vendingMachineId, quantity + inCart);
-    }
-
-    public void removeItemFromCart(
-            String userId,
-            Long vendingMachineId,
-            Long itemId,
-            Integer quantity
-    ) {
-        cartItemRedisOperations.removeItemFromCart(userId, itemId, vendingMachineId, quantity);
-    }
-
-    public Cart getCartItems(String userId) {
-        final var cartItems = cartItemRedisOperations.getCartItems(userId);
-        final var itemIds = cartItems.stream().map(CartItem::getItemId).toList();
-        final var items = itemIds.stream()
-                .map(id -> CompletableFuture.supplyAsync(() -> itemRepository.findById(id).get()))
-                .toList()
-                .stream()
-                .map(CompletableFuture::join)
-                .toList();
-
-        final var cartItemResponseList = IntStream.range(0, items.size()).mapToObj(i ->
-                new Cart.CartItemResponse(
-                        cartItems.get(i).getVendingMachineId(),
-                        itemDtoMapper.toItemResponse(items.get(i)),
-                        cartItems.get(i).getQuantity()
-                )
-        ).toList();
-        return new Cart(cartItemResponseList);
     }
 }

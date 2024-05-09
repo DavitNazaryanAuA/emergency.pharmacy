@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 @Repository
-public class CartItemRedisOperations {
+public class CartItemRepository {
 
     @Value("${redis.cart.prefix}")
     private String cartItemPrefix;

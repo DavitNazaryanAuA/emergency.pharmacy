@@ -1,19 +1,15 @@
 package com.capstone.emergency.pharmacy.rest.controller.vending;
 
 import com.capstone.emergency.pharmacy.core.vending.service.VendingMachineService;
-import com.capstone.emergency.pharmacy.core.vending.service.model.Cart;
 import com.capstone.emergency.pharmacy.core.vending.service.model.LoadItemsCommand;
 import com.capstone.emergency.pharmacy.core.vending.service.model.Location;
 import com.capstone.emergency.pharmacy.core.vending.service.model.VendingMachine;
 import com.capstone.emergency.pharmacy.rest.controller.vending.model.model.VendingMachineDtoMapper;
 import com.capstone.emergency.pharmacy.rest.controller.vending.model.model.VendingMachineLoadedItemsResponse;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.validator.constraints.Range;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -73,61 +69,6 @@ public class VendingMachineController {
                 .toList();
         return ResponseEntity.ok(
                 new VendingMachineLoadedItemsResponse(id, itemsResponse)
-        );
-    }
-
-    @PostMapping("/{vendingMachineId}/cart/{itemId}")
-    public ResponseEntity<Void> addItemToCard(
-            @PathVariable("vendingMachineId") Long vendingMachineId,
-            @PathVariable("itemId") Long itemId,
-
-            @RequestParam("quantity")
-            @NotNull
-                    Integer quantity
-    ) {
-        final var auth = SecurityContextHolder.getContext().getAuthentication();
-        final var jwt = (Jwt) auth.getPrincipal();
-        final var userId = jwt.getSubject();
-
-        service.addItemToCart(
-                userId,
-                vendingMachineId,
-                itemId,
-                quantity
-        );
-        return ResponseEntity.ok().build();
-    }
-
-    @DeleteMapping("/{vendingMachineId}/cart/{itemId}")
-    public ResponseEntity<Void> removeCartItem(
-            @PathVariable("vendingMachineId") Long vendingMachineId,
-            @PathVariable("itemId") Long itemId,
-
-            @RequestParam("quantity")
-            @NotNull
-                    Integer quantity
-    ) {
-        final var auth = SecurityContextHolder.getContext().getAuthentication();
-        final var jwt = (Jwt) auth.getPrincipal();
-        final var userId = jwt.getSubject();
-
-        service.removeItemFromCart(
-                userId,
-                vendingMachineId,
-                itemId,
-                quantity
-        );
-        return ResponseEntity.ok().build();
-    }
-
-    @GetMapping("/cart")
-    public ResponseEntity<Cart> getCart() {
-        final var auth = SecurityContextHolder.getContext().getAuthentication();
-        final var jwt = (Jwt) auth.getPrincipal();
-        final var userId = jwt.getSubject();
-
-        return ResponseEntity.ok(
-                service.getCartItems(userId)
         );
     }
 }
