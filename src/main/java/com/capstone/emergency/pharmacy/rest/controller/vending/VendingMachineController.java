@@ -74,6 +74,19 @@ public class VendingMachineController {
         );
     }
 
+    @GetMapping("/{id}/items")
+    public ResponseEntity<VendingMachineLoadedItemsResponse> getItems(@PathVariable("id") Long id) {
+        final var itemsResponse = service
+                .getMachineItems(id)
+                .stream()
+                .map(mapper::toVendingMachineItemResponse)
+                .toList();
+
+        return ResponseEntity.ok(
+                new VendingMachineLoadedItemsResponse(id, itemsResponse)
+        );
+    }
+
     @PostMapping("/{id}/lock")
     public ResponseEntity<Void> lockMachine(
             @PathVariable("id") Long id

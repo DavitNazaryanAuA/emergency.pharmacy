@@ -8,7 +8,7 @@ import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineRed
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.model.VendingMachineEntity;
 import com.capstone.emergency.pharmacy.core.vending.repository.model.VendingMachineItem;
-import com.capstone.emergency.pharmacy.core.vending.service.mapper.VMMapper;
+import com.capstone.emergency.pharmacy.core.vending.service.model.mapper.VMMapper;
 import com.capstone.emergency.pharmacy.core.vending.service.model.LoadItemsCommand;
 import com.capstone.emergency.pharmacy.core.vending.service.model.Location;
 import com.capstone.emergency.pharmacy.core.vending.service.model.VendingMachine;
@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -91,6 +92,11 @@ public class VendingMachineService {
         ).toList();
 
         return vendingMachineItemRepository.saveAll(machineItems);
+    }
+
+    public List<VendingMachineItem> getMachineItems(Long vendingMachineId) {
+        repository.findById(vendingMachineId).orElseThrow(() -> new NotFoundException("Vending machine with id: " + vendingMachineId + " not found"));
+        return vendingMachineItemRepository.findAllByVendingMachineId(vendingMachineId);
     }
 
     public void lockVendingMachine(Long vendingMachineId, String userId) {

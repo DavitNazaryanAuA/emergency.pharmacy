@@ -1,4 +1,4 @@
-package com.capstone.emergency.pharmacy.core.vending.service.mapper;
+package com.capstone.emergency.pharmacy.core.vending.service.model.mapper;
 
 import com.capstone.emergency.pharmacy.core.vending.repository.model.VendingMachineEntity;
 import com.capstone.emergency.pharmacy.core.vending.service.model.Location;
