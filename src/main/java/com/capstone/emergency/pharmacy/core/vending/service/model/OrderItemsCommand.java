@@ -1,5 +1,6 @@
 package com.capstone.emergency.pharmacy.core.vending.service.model;
 
+import com.capstone.emergency.pharmacy.core.vending.repository.Orderable;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import jakarta.validation.Valid;
@@ -24,6 +25,15 @@ public record OrderItemsCommand(
             @NotNull
             @Positive
             Integer quantity
-    ) {
+    ) implements Orderable {
+        @Override
+        public Long getItemId() {
+            return itemId();
+        }
+
+        @Override
+        public Integer getQuantity() {
+            return quantity();
+        }
     }
 }

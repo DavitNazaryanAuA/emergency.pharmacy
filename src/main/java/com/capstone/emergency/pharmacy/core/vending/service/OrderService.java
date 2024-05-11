@@ -2,15 +2,19 @@ package com.capstone.emergency.pharmacy.core.vending.service;
 
 import com.capstone.emergency.pharmacy.core.error.BadRequestException;
 import com.capstone.emergency.pharmacy.core.error.NotFoundException;
-import com.capstone.emergency.pharmacy.core.vending.repository.mongo.OrderRepository;
+import com.capstone.emergency.pharmacy.core.vending.repository.CartItemRepository;
+import com.capstone.emergency.pharmacy.core.vending.repository.Orderable;
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineItemRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.model.Order;
+import com.capstone.emergency.pharmacy.core.vending.repository.mongo.OrderRepository;
 import com.capstone.emergency.pharmacy.core.vending.service.model.OrderItemsCommand;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,6 +24,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final VendingMachineItemRepository vendingMachineItemRepository;
     private final VendingMachineRepository vendingMachineRepository;
+    private final CartItemRepository cartItemRepository;
 
 
     public Order orderItems(
@@ -31,7 +36,30 @@ public class OrderService {
         vendingMachineRepository.findById(machineId)
                 .orElseThrow(() -> new NotFoundException("Vending machine with id: " + machineId + " not found"));
 
-        final var items = vendingMachineItemRepository.findAllByVendingMachineId(machineId);
+        return placeOrder(userId, machineId, orderedItems);
+    }
+
+    public Order orderItemsInCart(
+            String userId,
+            Consumer<Long> machineLockVerification
+    ) {
+        final var cartItems = cartItemRepository.getCartItems(userId);
+        if (cartItems.isEmpty()) {
+            throw new NotFoundException("Cart is empty");
+        }
+
+        final var machineId = cartItems.get(0).getVendingMachineId();
+        machineLockVerification.accept(machineId);
+
+        return placeOrder(userId, machineId, cartItems);
+    }
+
+    private <V extends Orderable> Order placeOrder(
+            String userId,
+            Long vendingMachineId,
+            List<V> orderables
+    ) {
+        final var items = vendingMachineItemRepository.findAllByVendingMachineId(vendingMachineId);
         if (items.isEmpty()) {
             throw new NotFoundException("No items in machine");
         }
@@ -44,34 +72,34 @@ public class OrderService {
         );
 
         // check to see if there is enough of each item in the machine
-        orderedItems.forEach(item -> {
-            Integer foundQuantity = idToItems.get(item.itemId()).getQuantity();
+        orderables.forEach(item -> {
+            Integer foundQuantity = idToItems.get(item.getItemId()).getQuantity();
             foundQuantity = foundQuantity == null ? 0 : foundQuantity;
-            if (foundQuantity < item.quantity()) {
+            if (foundQuantity < item.getQuantity()) {
                 throw new BadRequestException(
-                        "Not enough of item: " + item.itemId() + " in machine." +
-                                " Requested: " + item.quantity() + ", found: " + foundQuantity
+                        "Not enough of item: " + item.getItemId() + " in machine." +
+                                " Requested: " + item.getQuantity() + ", found: " + foundQuantity
                 );
             }
         });
 
-        final var orderItemsPrices = orderedItems.stream().collect(
+        final var orderItemsPrices = orderables.stream().collect(
                 Collectors.toMap(
-                        OrderItemsCommand.OrderedItem::itemId,
-                        item -> idToItems.get(item.itemId()).getItem().getPrice() * item.quantity()
+                        Orderable::getItemId,
+                        item -> idToItems.get(item.getItemId()).getItem().getPrice() * item.getQuantity()
                 )
         );
 
         final var order = Order.builder()
                 .items(
-                        orderedItems.stream().map(item ->
+                        orderables.stream().map(item ->
                                 Order.OrderItem.builder()
-                                        .vendingMachineId(machineId.toString())
-                                        .itemId(item.itemId().toString())
+                                        .vendingMachineId(vendingMachineId.toString())
+                                        .itemId(item.getItemId().toString())
                                         .price(
-                                                orderItemsPrices.get(item.itemId())
+                                                orderItemsPrices.get(item.getItemId())
                                         )
-                                        .quantity(item.quantity())
+                                        .quantity(item.getQuantity())
                                         .build()
                         ).toList()
                 )

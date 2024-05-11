@@ -13,6 +13,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.function.Consumer;
+
 @Validated
 @RequiredArgsConstructor
 @CrossOrigin
@@ -34,6 +36,19 @@ public class OrderController {
         vendingMachineService.validateMachineLock(command.vendingMachineId(), userId);
 
         final var order = orderService.orderItems(userId, command);
+        final var response = new OrderResponse(order.getId(), order.getTotal());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/cart")
+    public ResponseEntity<OrderResponse> orderCartItems() {
+        final var auth = SecurityContextHolder.getContext().getAuthentication();
+        final var jwt = (Jwt) auth.getPrincipal();
+        final var userId = jwt.getSubject();
+
+        Consumer<Long> verificationCallback = (Long machineId) -> vendingMachineService.validateMachineLock(machineId, userId);
+
+        final var order = orderService.orderItemsInCart(userId, verificationCallback);
         final var response = new OrderResponse(order.getId(), order.getTotal());
         return ResponseEntity.ok(response);
     }
