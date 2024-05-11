@@ -32,4 +32,16 @@ public class VendingMachineRedisRepository {
         valueOperations.set(key, userId);
         valueOperations.getOperations().expire(key, 2, TimeUnit.MINUTES);
     }
+
+    public void validateMachineLock(Long vendingMachineId, String userId) {
+        final var key = lockPrefix + ":" + vendingMachineId;
+        final var existing = (String) valueOperations.get(key);
+
+        if (existing == null || !existing.equals(userId)) {
+            throw new ForbiddenException(
+                    "Vending machine is locked for checkout by another user",
+                    ApiException.Reason.MACHINE_ALREADY_LOCKED
+            );
+        }
+    }
 }

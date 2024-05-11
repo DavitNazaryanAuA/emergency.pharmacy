@@ -8,15 +8,14 @@ import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineRed
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.model.VendingMachineEntity;
 import com.capstone.emergency.pharmacy.core.vending.repository.model.VendingMachineItem;
-import com.capstone.emergency.pharmacy.core.vending.service.model.mapper.VMMapper;
 import com.capstone.emergency.pharmacy.core.vending.service.model.LoadItemsCommand;
 import com.capstone.emergency.pharmacy.core.vending.service.model.Location;
 import com.capstone.emergency.pharmacy.core.vending.service.model.VendingMachine;
+import com.capstone.emergency.pharmacy.core.vending.service.model.mapper.VMMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -105,5 +104,9 @@ public class VendingMachineService {
         );
 
         vendingMachineRedisRepository.lockMachine(vendingMachineId, userId);
+    }
+
+    public void validateMachineLock(Long vendingMachineId, String userId) {
+        vendingMachineRedisRepository.validateMachineLock(vendingMachineId, userId);
     }
 }
