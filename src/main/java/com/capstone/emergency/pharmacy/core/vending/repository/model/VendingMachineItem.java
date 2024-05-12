@@ -3,14 +3,12 @@ package com.capstone.emergency.pharmacy.core.vending.repository.model;
 import com.capstone.emergency.pharmacy.core.item.repository.model.Item;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
-import org.springframework.data.redis.core.RedisHash;
 
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
+@Setter
 @ToString
 @Entity
 @Table(name = "vending_machine_item", indexes = @Index(name = "idx_machineId_itemId", columnList = "vendingMachineId, item_id", unique = true))

@@ -4,7 +4,7 @@ import org.springframework.http.HttpStatus;
 
 public class ForbiddenException extends ApiException {
     public ForbiddenException(String message, Reason reason) {
-        this(message, null, null);
+        this(message, reason, null);
     }
 
     public ForbiddenException(String message) {

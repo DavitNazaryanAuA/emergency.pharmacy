@@ -10,10 +10,16 @@ import com.capstone.emergency.pharmacy.core.vending.repository.model.Order;
 import com.capstone.emergency.pharmacy.core.vending.repository.mongo.OrderRepository;
 import com.capstone.emergency.pharmacy.core.vending.service.model.OrderItemsCommand;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -21,6 +27,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderService {
 
+    private final MongoTemplate mongoTemplate;
     private final OrderRepository orderRepository;
     private final VendingMachineItemRepository vendingMachineItemRepository;
     private final VendingMachineRepository vendingMachineRepository;
@@ -52,6 +59,53 @@ public class OrderService {
         machineLockVerification.accept(machineId);
 
         return placeOrder(userId, machineId, cartItems);
+    }
+
+    public void checkOut(String userId, String orderId) {
+        final var order = orderRepository.findByIdAndUserId(orderId, userId)
+                .orElseThrow(() -> new NotFoundException("Order: " + orderId + " not found for user: " + userId));
+
+        if (order.getPaid()) {
+            throw new BadRequestException("Order: " + orderId + " has been completed");
+        }
+
+        // TODO check payment completion before proceed
+
+        final var machineId = Long.valueOf(order.getVendingMachineId());
+
+        order.getItems().stream()
+                .map(orderItem ->
+                        CompletableFuture.<Void>supplyAsync(() -> {
+                                    final var itemId = Long.valueOf(orderItem.getItemId());
+                                    final var machineItem = vendingMachineItemRepository
+                                            .findByVendingMachineIdAndItem_Id(machineId, itemId).get();
+
+                                    if (machineItem.getQuantity() - orderItem.getQuantity() == 0) {
+                                        vendingMachineItemRepository.delete(machineItem);
+                                    } else {
+                                        machineItem.setQuantity(machineItem.getQuantity() - orderItem.getQuantity());
+                                        vendingMachineItemRepository.save(machineItem);
+                                    }
+
+                                    return null;
+                                }
+                        )
+                )
+                .toList()
+                .stream()
+                .map(CompletableFuture::join)
+                .close();
+
+        final var options = new FindAndModifyOptions();
+        options.returnNew(true);
+        final var result = mongoTemplate.findAndModify(
+                Query.query(Criteria.where("id").is(orderId).and("user_id").is(userId)),
+                Update.update("paid", true),
+                options,
+                Order.class
+        );
+
+        System.out.println(result);
     }
 
     private <V extends Orderable> Order placeOrder(
@@ -94,7 +148,6 @@ public class OrderService {
                 .items(
                         orderables.stream().map(item ->
                                 Order.OrderItem.builder()
-                                        .vendingMachineId(vendingMachineId.toString())
                                         .itemId(item.getItemId().toString())
                                         .price(
                                                 orderItemsPrices.get(item.getItemId())
@@ -104,7 +157,7 @@ public class OrderService {
                         ).toList()
                 )
                 .total(orderItemsPrices.values().stream().reduce(Double::sum).get())
-                .paid(false)
+                .vendingMachineId(vendingMachineId.toString())
                 .userId(userId)
                 .paid(false)
                 .date(new Date())

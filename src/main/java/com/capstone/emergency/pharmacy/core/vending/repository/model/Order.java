@@ -22,6 +22,9 @@ public class Order {
     @Field("user_id")
     private String userId;
 
+    @Field("vending_machine_id")
+    private String vendingMachineId;
+
     @Field("items")
     private List<OrderItem> items;
 
@@ -40,8 +43,6 @@ public class Order {
     @Getter
     @ToString
     public static class OrderItem {
-        @Field("vending_machine_id")
-        private String vendingMachineId;
 
         @Field("item_id")
         private String itemId;
@@ -50,6 +51,6 @@ public class Order {
         private Integer quantity;
 
         @Field("price")
-        Double price;
+        private Double price;
     }
 }

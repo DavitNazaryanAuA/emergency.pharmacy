@@ -52,4 +52,18 @@ public class OrderController {
         final var response = new OrderResponse(order.getId(), order.getTotal());
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/{id}/checkout")
+    public ResponseEntity<Void> checkOut(
+            @PathVariable("id") String orderId,
+            @RequestParam("vending_machine_id") Long vendingMachineId
+    ) {
+        final var auth = SecurityContextHolder.getContext().getAuthentication();
+        final var jwt = (Jwt) auth.getPrincipal();
+        final var userId = jwt.getSubject();
+
+        vendingMachineService.validateMachineLock(vendingMachineId, userId);
+        orderService.checkOut(userId, orderId);
+        return ResponseEntity.ok().build();
+    }
 }
