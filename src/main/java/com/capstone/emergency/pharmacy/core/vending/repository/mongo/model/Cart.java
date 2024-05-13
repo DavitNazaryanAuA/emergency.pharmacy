@@ -1,6 +1,7 @@
 package com.capstone.emergency.pharmacy.core.vending.repository.mongo.model;
 
 
+import com.capstone.emergency.pharmacy.core.vending.repository.Orderable;
 import jakarta.persistence.Id;
 import lombok.*;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -36,7 +37,7 @@ public class Cart {
     @Getter
     @Setter
     @ToString
-    public static class CartItem {
+    public static class CartItem implements Orderable {
         @Field("quantity")
         private Integer quantity;
         @Field("item_id")

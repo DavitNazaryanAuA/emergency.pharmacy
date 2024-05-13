@@ -2,12 +2,12 @@ package com.capstone.emergency.pharmacy.core.vending.service;
 
 import com.capstone.emergency.pharmacy.core.error.BadRequestException;
 import com.capstone.emergency.pharmacy.core.error.NotFoundException;
-import com.capstone.emergency.pharmacy.core.vending.repository.CartItemRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.Orderable;
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineItemRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineRepository;
-import com.capstone.emergency.pharmacy.core.vending.repository.mongo.model.Order;
+import com.capstone.emergency.pharmacy.core.vending.repository.mongo.CartRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.mongo.OrderRepository;
+import com.capstone.emergency.pharmacy.core.vending.repository.mongo.model.Order;
 import com.capstone.emergency.pharmacy.core.vending.service.model.OrderItemsCommand;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
@@ -31,7 +31,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final VendingMachineItemRepository vendingMachineItemRepository;
     private final VendingMachineRepository vendingMachineRepository;
-    private final CartItemRepository cartItemRepository;
+    private final CartRepository cartRepository;
 
 
     public Order orderItems(
@@ -50,12 +50,14 @@ public class OrderService {
             String userId,
             Consumer<Long> machineLockVerification
     ) {
-        final var cartItems = cartItemRepository.getCartItems(userId);
+        final var cart = cartRepository.findByUserId(userId)
+                .orElseThrow(() -> new NotFoundException("Cart not found"));
+        final var cartItems = cart.getCartItems();
         if (cartItems.isEmpty()) {
             throw new NotFoundException("Cart is empty");
         }
 
-        final var machineId = cartItems.get(0).getVendingMachineId();
+        final var machineId = cart.getVendingMachineId();
         machineLockVerification.accept(machineId);
 
         return placeOrder(userId, machineId, cartItems);
