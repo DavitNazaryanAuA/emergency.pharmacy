@@ -1,7 +1,7 @@
 package com.capstone.emergency.pharmacy.rest.controller.vending;
 
 import com.capstone.emergency.pharmacy.core.vending.service.CartService;
-import com.capstone.emergency.pharmacy.core.vending.service.model.Cart;
+import com.capstone.emergency.pharmacy.core.vending.service.model.CartResponse;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -64,7 +64,7 @@ public class CartController {
     }
 
     @GetMapping
-    public ResponseEntity<Cart> getCart() {
+    public ResponseEntity<CartResponse> getCart() {
         final var auth = SecurityContextHolder.getContext().getAuthentication();
         final var jwt = (Jwt) auth.getPrincipal();
         final var userId = jwt.getSubject();

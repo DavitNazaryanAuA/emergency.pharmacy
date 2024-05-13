@@ -6,7 +6,7 @@ import com.capstone.emergency.pharmacy.core.vending.repository.CartItemRepositor
 import com.capstone.emergency.pharmacy.core.vending.repository.Orderable;
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineItemRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineRepository;
-import com.capstone.emergency.pharmacy.core.vending.repository.model.Order;
+import com.capstone.emergency.pharmacy.core.vending.repository.mongo.model.Order;
 import com.capstone.emergency.pharmacy.core.vending.repository.mongo.OrderRepository;
 import com.capstone.emergency.pharmacy.core.vending.service.model.OrderItemsCommand;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package com.capstone.emergency.pharmacy.core.vending.repository.model;
+package com.capstone.emergency.pharmacy.core.vending.repository.mongo.model;
 
 import jakarta.persistence.Id;
 import lombok.*;
