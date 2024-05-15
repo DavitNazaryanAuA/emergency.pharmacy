@@ -10,11 +10,6 @@ import com.capstone.emergency.pharmacy.core.vending.repository.mongo.OrderReposi
 import com.capstone.emergency.pharmacy.core.vending.repository.mongo.model.Order;
 import com.capstone.emergency.pharmacy.core.vending.service.model.OrderItemsCommand;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.mongodb.core.FindAndModifyOptions;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -27,7 +22,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderService {
 
-    private final MongoTemplate mongoTemplate;
     private final OrderRepository orderRepository;
     private final VendingMachineItemRepository vendingMachineItemRepository;
     private final VendingMachineRepository vendingMachineRepository;
@@ -97,17 +91,6 @@ public class OrderService {
                 .stream()
                 .map(CompletableFuture::join)
                 .close();
-
-        final var options = new FindAndModifyOptions();
-        options.returnNew(true);
-        final var result = mongoTemplate.findAndModify(
-                Query.query(Criteria.where("id").is(orderId).and("user_id").is(userId)),
-                Update.update("paid", true),
-                options,
-                Order.class
-        );
-
-        System.out.println(result);
     }
 
     private <V extends Orderable> Order placeOrder(

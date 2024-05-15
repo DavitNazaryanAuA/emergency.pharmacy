@@ -8,6 +8,8 @@ import jakarta.validation.constraints.Positive;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record AddReservationCommand(
         @NotNull
+        Long vendingMachineId,
+        @NotNull
         Long itemId,
         @NotNull
         @Positive

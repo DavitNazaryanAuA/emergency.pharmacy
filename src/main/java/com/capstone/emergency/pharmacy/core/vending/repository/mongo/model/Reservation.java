@@ -13,17 +13,19 @@ import java.util.Date;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
+@Setter
 @ToString
 @Document(collection = "reservation")
 @CompoundIndexes({
-        @CompoundIndex(name = "user_item_index", def = "{'user_id' : 1, 'item_id' : 1}", unique = true)
+        @CompoundIndex(name = "user_item_index", def = "{'reserved_item' : 1, 'user_id' : 1}", unique = true)
 })
 public class Reservation {
     @Id
+    @Builder.Default
     private String id = null;
 
-    @Field("item_id")
-    private String itemId;
+    @Field("reserved_item")
+    private ReservedItem reservedItem;
 
     @Field("user_id")
     private String userId;
@@ -32,5 +34,19 @@ public class Reservation {
     private Integer quantity;
 
     @Field("exp_date")
-    private Date date;
+    private Date expDate;
+
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Setter
+    @ToString
+    public static class ReservedItem{
+        @Field("vending_machine_id")
+        private String vendingMachineId;
+
+        @Field("item_id")
+        private String itemId;
+    }
 }

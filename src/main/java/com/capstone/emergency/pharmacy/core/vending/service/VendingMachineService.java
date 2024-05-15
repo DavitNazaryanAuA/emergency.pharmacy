@@ -8,6 +8,8 @@ import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineRed
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.model.VendingMachineEntity;
 import com.capstone.emergency.pharmacy.core.vending.repository.model.VendingMachineItem;
+import com.capstone.emergency.pharmacy.core.vending.repository.mongo.ReservationRepository;
+import com.capstone.emergency.pharmacy.core.vending.repository.mongo.model.Reservation;
 import com.capstone.emergency.pharmacy.core.vending.service.model.LoadItemsCommand;
 import com.capstone.emergency.pharmacy.core.vending.service.model.Location;
 import com.capstone.emergency.pharmacy.core.vending.service.model.VendingMachine;
@@ -16,9 +18,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @RequiredArgsConstructor
@@ -27,6 +32,7 @@ public class VendingMachineService {
     private final VendingMachineRepository repository;
     private final VendingMachineItemRepository vendingMachineItemRepository;
     private final ItemRepository itemRepository;
+    private final ReservationRepository reservationRepository;
     private final VendingMachineRedisRepository vendingMachineRedisRepository;
     private final VMMapper mapper;
 
@@ -93,9 +99,35 @@ public class VendingMachineService {
         return vendingMachineItemRepository.saveAll(machineItems);
     }
 
-    public List<VendingMachineItem> getMachineItems(Long vendingMachineId) {
+    public List<VendingMachineItem> getMachineItems(
+            Long vendingMachineId,
+            String userId
+    ) {
         repository.findById(vendingMachineId).orElseThrow(() -> new NotFoundException("Vending machine with id: " + vendingMachineId + " not found"));
-        return vendingMachineItemRepository.findAllByVendingMachineId(vendingMachineId);
+
+        final var itemsFuture = CompletableFuture.supplyAsync(() ->
+                vendingMachineItemRepository.findAllByVendingMachineId(vendingMachineId)
+        );
+        final var reservationsFuture = CompletableFuture.supplyAsync(() ->
+                reservationRepository.findByReservedItem_VendingMachineIdAndUserIdAndExpDateGreaterThan(
+                        vendingMachineId.toString(),
+                        userId,
+                        Date.from(Instant.now())
+                )
+        );
+
+        return itemsFuture.thenCombine(reservationsFuture, (items, itemReservations) -> {
+            final var reservationIdsToQuantity = itemReservations.stream()
+                    .collect(Collectors.toMap(reservation -> reservation.getReservedItem().getItemId(), Reservation::getQuantity));
+
+            items.forEach(item -> {
+                var reserved = reservationIdsToQuantity.get(item.getItem().getId().toString());
+                reserved = reserved == null ? 0 : reserved;
+                item.setQuantity(item.getQuantity() - reserved);
+            });
+
+            return items;
+        }).join();
     }
 
     public void lockVendingMachine(Long vendingMachineId, String userId) {

@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import java.util.concurrent.CompletionException;
+
 @RestControllerAdvice
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
@@ -25,6 +27,19 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
             return ResponseEntity
                     .status(ex.getStatus())
                     .body(new ApiFailureDto(ex.getMessage(), ex.getReason().name()));
+        }
+        return ResponseEntity
+                .internalServerError()
+                .body(new ApiFailureDto(INTERNAL_SERVER_ERROR_MESSAGE, INTERNAL_SERVER_ERROR_REASON));
+    }
+
+    @ExceptionHandler
+    protected ResponseEntity<ApiFailureDto> handleApiCompletionException(CompletionException ex) {
+        final var cause = (ApiException) ex.getCause();
+        if (cause.getStatus().is4xxClientError()) {
+            return ResponseEntity
+                    .status(cause.getStatus())
+                    .body(new ApiFailureDto(cause.getMessage(), cause.getReason().name()));
         }
         return ResponseEntity
                 .internalServerError()

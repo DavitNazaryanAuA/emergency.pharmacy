@@ -76,8 +76,12 @@ public class VendingMachineController {
 
     @GetMapping("/{id}/items")
     public ResponseEntity<VendingMachineLoadedItemsResponse> getItems(@PathVariable("id") Long id) {
+        final var auth = SecurityContextHolder.getContext().getAuthentication();
+        final var jwt = (Jwt) auth.getPrincipal();
+        final var userId = jwt.getSubject();
+
         final var itemsResponse = service
-                .getMachineItems(id)
+                .getMachineItems(id, userId)
                 .stream()
                 .map(mapper::toVendingMachineItemResponse)
                 .toList();
