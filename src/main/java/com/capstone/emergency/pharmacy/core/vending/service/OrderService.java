@@ -26,7 +26,7 @@ public class OrderService {
     private final VendingMachineItemRepository vendingMachineItemRepository;
     private final VendingMachineRepository vendingMachineRepository;
     private final CartRepository cartRepository;
-
+    private final CartService cartService;
 
     public Order orderItems(
             String userId,
@@ -61,7 +61,7 @@ public class OrderService {
         final var order = orderRepository.findByIdAndUserId(orderId, userId)
                 .orElseThrow(() -> new NotFoundException("Order: " + orderId + " not found for user: " + userId));
 
-        if (order.getPaid()) {
+        if (!order.getStatus().isPending()) {
             throw new BadRequestException("Order: " + orderId + " has been completed");
         }
 
@@ -91,6 +91,8 @@ public class OrderService {
                 .stream()
                 .map(CompletableFuture::join)
                 .close();
+
+        cartService.deleteCart(userId);
     }
 
     private <V extends Orderable> Order placeOrder(
@@ -144,7 +146,7 @@ public class OrderService {
                 .total(orderItemsPrices.values().stream().reduce(Double::sum).get())
                 .vendingMachineId(vendingMachineId.toString())
                 .userId(userId)
-                .paid(false)
+                .status(Order.Status.PENDING)
                 .date(new Date())
                 .build();
 

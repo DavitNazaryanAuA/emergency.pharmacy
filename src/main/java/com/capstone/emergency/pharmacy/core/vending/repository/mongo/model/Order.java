@@ -31,8 +31,8 @@ public class Order {
     @Field("total")
     private Double total;
 
-    @Field("paid")
-    private Boolean paid;
+    @Field("status")
+    private Status status;
 
     @Field("date")
     private Date date = new Date();
@@ -52,5 +52,21 @@ public class Order {
 
         @Field("price")
         private Double price;
+    }
+
+    public enum Status {
+        PENDING, CANCELLED, COMPLETE;
+
+        public boolean isPending() {
+            return this == PENDING;
+        }
+
+        public boolean isCancelled() {
+            return this == CANCELLED;
+        }
+
+        public boolean isComplete() {
+            return this == COMPLETE;
+        }
     }
 }

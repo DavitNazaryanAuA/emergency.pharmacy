@@ -6,6 +6,7 @@ import com.capstone.emergency.pharmacy.core.error.NotFoundException;
 import com.capstone.emergency.pharmacy.core.item.repository.ItemRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.VendingMachineItemRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.mongo.CartRepository;
+import com.capstone.emergency.pharmacy.core.vending.repository.mongo.ReservationRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.mongo.model.Cart;
 import com.capstone.emergency.pharmacy.core.vending.service.model.CartResponse;
 import com.capstone.emergency.pharmacy.rest.controller.item.model.mapper.ItemDtoMapper;
@@ -24,6 +25,7 @@ public class CartService {
     private final VendingMachineItemRepository vendingMachineItemRepository;
     private final ItemRepository itemRepository;
     private final CartRepository cartRepository;
+    private final ReservationRepository reservationRepository;
     private final ItemDtoMapper itemDtoMapper;
 
     public void addItemToCart(
@@ -138,5 +140,10 @@ public class CartService {
                 )
         ).toList();
         return new CartResponse(cartItemResponseList);
+    }
+
+    public void deleteCart(String userId) {
+        cartRepository.deleteByUserId(userId);
+        reservationRepository.deleteAllByUserId(userId);
     }
 }

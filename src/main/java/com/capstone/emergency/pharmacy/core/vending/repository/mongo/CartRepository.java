@@ -12,4 +12,6 @@ public interface CartRepository extends MongoRepository<Cart, String> {
     Cart findByUserIdAndAndVendingMachineId(String userId, Long vendingMachineId);
 
     Optional<Cart> findByUserId(String userId);
+
+    Long deleteByUserId(String userId);
 }

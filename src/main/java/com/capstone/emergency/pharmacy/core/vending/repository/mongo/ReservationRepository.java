@@ -21,4 +21,6 @@ public interface ReservationRepository extends MongoRepository<Reservation, Stri
             String userId,
             Date currentDate
     );
+
+    Long deleteAllByUserId(String userId);
 }

@@ -73,4 +73,14 @@ public class CartController {
                 cartService.getCartItems(userId)
         );
     }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteCart() {
+        final var auth = SecurityContextHolder.getContext().getAuthentication();
+        final var jwt = (Jwt) auth.getPrincipal();
+        final var userId = jwt.getSubject();
+
+        cartService.deleteCart(userId);
+        return ResponseEntity.ok().build();
+    }
 }
