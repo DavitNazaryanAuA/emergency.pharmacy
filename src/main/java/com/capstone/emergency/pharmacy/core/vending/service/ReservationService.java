@@ -57,13 +57,9 @@ public class ReservationService {
             return itemReservations;
         }).join();
 
-        System.out.println(reservations);
-
         final var existing = reservations.stream()
                 .filter(reservation -> reservation.getUserId().equals(userId))
                 .findFirst();
-
-        System.out.println(existing);
 
         Reservation updatedReservation;
         if (existing.isPresent()) {

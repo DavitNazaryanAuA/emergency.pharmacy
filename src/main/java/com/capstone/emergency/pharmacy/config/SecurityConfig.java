@@ -1,9 +1,9 @@
 package com.capstone.emergency.pharmacy.config;
 
+import com.capstone.emergency.pharmacy.core.auth.jwt.JwtService;
 import com.capstone.emergency.pharmacy.core.user.repository.Role;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,22 +12,22 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.authentication.logout.LogoutHandler;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final RsaKeyProperties rsaKeyProperties;
+    private final JwtService jwtService;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -51,22 +51,36 @@ public class SecurityConfig {
 //                                .hasAuthority(Role.ADMIN.name())
                                 .anyRequest().hasAuthority(Role.USER.name())
                 )
+                .addFilterBefore(
+                        (request, response, chain) -> {
+                            final var requestCasted = (HttpServletRequest) request;
+                            String path = requestCasted.getRequestURI().substring(requestCasted.getContextPath().length());
+
+                            if (
+                                    !path.equals("/api/auth/sign-up") &&
+                                            !path.equals("/api/auth/sign-in") &&
+                                            !path.equals("/api/auth/refresh")
+                            ) {
+                                final var auth = SecurityContextHolder.getContext().getAuthentication();
+                                final var jwt = (Jwt) auth.getPrincipal();
+
+                                final var isBlacklisted = jwtService.isBlacklisted(jwt.getTokenValue());
+                                if (isBlacklisted) {
+                                    ((HttpServletResponse) response).sendError(HttpServletResponse.SC_UNAUTHORIZED, "Expired token.");
+                                }
+                            }
+
+                            chain.doFilter(request, response);
+                        },
+                        AuthorizationFilter.class
+                )
                 .oauth2ResourceServer(oath2 -> oath2.jwt(Customizer.withDefaults()))
+                .logout(logout ->
+                        logout.logoutUrl("/api/auth/logout")
+                                .addLogoutHandler(logoutHandler())
+                                .logoutSuccessHandler((request, response, authentication) -> SecurityContextHolder.clearContext())
+                )
                 .build();
-    }
-
-    @Bean
-    public JwtDecoder decoder() {
-        return NimbusJwtDecoder.withPublicKey(rsaKeyProperties.publicKey()).build();
-    }
-
-    @Bean
-    JwtEncoder encoder() {
-        final var jwk = new RSAKey.Builder(rsaKeyProperties.publicKey())
-                .privateKey(rsaKeyProperties.privateKey())
-                .build();
-        final var jwks = new ImmutableJWKSet<>(new JWKSet(jwk));
-        return new NimbusJwtEncoder(jwks);
     }
 
     @Bean
@@ -84,5 +98,23 @@ public class SecurityConfig {
         final var converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
         return converter;
+    }
+
+    private LogoutHandler logoutHandler() {
+        return (request, response, authentication) -> {
+            final String authHeader = request.getHeader("Authorization");
+            final String jwt;
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return;
+            }
+            jwt = authHeader.substring(7);
+
+            jwtService.blacklistAccessToken(jwt);
+            final var refresh = jwtService.findRefreshWithAccess(jwt);
+            if (refresh.isEmpty()) {
+                return;
+            }
+            jwtService.revokeRefreshToken(refresh.get().getToken());
+        };
     }
 }
