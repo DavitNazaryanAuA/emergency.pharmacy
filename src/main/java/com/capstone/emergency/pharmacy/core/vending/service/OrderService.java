@@ -57,15 +57,15 @@ public class OrderService {
         return placeOrder(userId, machineId, cartItems);
     }
 
-    public void checkOut(String userId, String orderId) {
-        final var order = orderRepository.findByIdAndUserId(orderId, userId)
-                .orElseThrow(() -> new NotFoundException("Order: " + orderId + " not found for user: " + userId));
+    public void checkOut(String orderId) {
+        final var order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order: " + orderId + " not found for"));
+
+        final var userId = order.getUserId();
 
         if (!order.getStatus().isPending()) {
             throw new BadRequestException("Order: " + orderId + " has been completed");
         }
-
-        // TODO check payment completion before proceed
 
         final var machineId = Long.valueOf(order.getVendingMachineId());
 

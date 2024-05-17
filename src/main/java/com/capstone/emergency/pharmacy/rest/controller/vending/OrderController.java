@@ -1,10 +1,17 @@
 package com.capstone.emergency.pharmacy.rest.controller.vending;
 
 
+import com.capstone.emergency.pharmacy.core.error.BadRequestException;
 import com.capstone.emergency.pharmacy.core.vending.service.OrderService;
 import com.capstone.emergency.pharmacy.core.vending.service.VendingMachineService;
 import com.capstone.emergency.pharmacy.core.vending.service.model.OrderItemsCommand;
 import com.capstone.emergency.pharmacy.rest.controller.vending.model.OrderResponse;
+import com.google.gson.JsonSyntaxException;
+import com.stripe.exception.SignatureVerificationException;
+import com.stripe.model.Event;
+import com.stripe.model.StripeObject;
+import com.stripe.model.checkout.Session;
+import com.stripe.net.Webhook;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -53,17 +60,27 @@ public class OrderController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{id}/checkout")
+    @PostMapping("/stripe-webhook")
     public ResponseEntity<Void> checkOut(
-            @PathVariable("id") String orderId,
-            @RequestParam("vending_machine_id") Long vendingMachineId
+            @RequestBody String paymentEventJson,
+            @RequestHeader("Stripe-Signature") String signatureHeader
     ) {
-        final var auth = SecurityContextHolder.getContext().getAuthentication();
-        final var jwt = (Jwt) auth.getPrincipal();
-        final var userId = jwt.getSubject();
+        Event event;
+        try {
+            event = Webhook.constructEvent(paymentEventJson, signatureHeader, "secret");
+        } catch (SignatureVerificationException | JsonSyntaxException ex) {
+            throw new BadRequestException(ex.getMessage());
+        }
+        StripeObject stripeObject = event.getDataObjectDeserializer().getObject().orElseThrow(() -> new BadRequestException("No Stripe event"));
 
-        vendingMachineService.validateMachineLock(vendingMachineId, userId);
-        orderService.checkOut(userId, orderId);
+        if ("checkout.session.completed".equals(event.getType())) {
+            Session session = (Session) stripeObject;
+            final var orderId = session.getClientReferenceId();
+            orderService.checkOut(orderId);
+        } else {
+            throw new BadRequestException("Unhandled stripe event type");
+        }
+
         return ResponseEntity.ok().build();
     }
 }

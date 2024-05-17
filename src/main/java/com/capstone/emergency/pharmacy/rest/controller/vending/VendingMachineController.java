@@ -21,7 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @CrossOrigin
 @RestController
-@RequestMapping("/api/vm/v1/")
+@RequestMapping("/api/vm")
 public class VendingMachineController {
 
     private final VendingMachineService service;
