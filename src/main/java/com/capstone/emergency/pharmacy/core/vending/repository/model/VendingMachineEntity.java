@@ -8,12 +8,12 @@ import org.springframework.data.annotation.LastModifiedDate;
 
 import java.util.Date;
 
-@Entity
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @ToString
+@Entity
 @Table(
         name = "vending_machine",
         indexes = @Index(name = "idx_location", columnList = "longitude, latitude", unique = true)

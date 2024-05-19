@@ -20,3 +20,8 @@ services:
     container_name: pharmacy-redis
     ports:
       - "6379:6379"
+
+  stripe-cli:
+    network_mode: host
+    image: stripe/stripe-cli
+    container_name: stripe-cli

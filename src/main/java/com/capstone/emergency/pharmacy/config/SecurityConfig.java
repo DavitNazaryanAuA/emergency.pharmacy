@@ -35,18 +35,19 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-                                .requestMatchers(HttpMethod.POST, "api/auth/v1/**")
+                                .requestMatchers(HttpMethod.POST, "api/auth/**")
                                 .permitAll()
-                                .requestMatchers(HttpMethod.POST, "api/item/v1/")
+                                .requestMatchers(HttpMethod.POST, "api/item/")
+                        .hasAuthority(Role.ADMIN.name())
+                                .requestMatchers(HttpMethod.POST, "api/item/product")
+                                .hasAuthority(Role.ADMIN.name())
+                                .requestMatchers(HttpMethod.POST, "api/vm/")
+                                .hasAuthority(Role.ADMIN.name())
+                                .requestMatchers(HttpMethod.POST, "api/vm/{id}/items")
                                 .permitAll()
-//                        .hasAuthority(Role.ADMIN.name())
-                                .requestMatchers(HttpMethod.POST, "api/item/v1/product")
+                                .requestMatchers(HttpMethod.POST, "api/order/stripe-webhook")
                                 .permitAll()
-//                                .hasAuthority(Role.ADMIN.name())
-                                .requestMatchers(HttpMethod.POST, "api/vm/v1/")
-                                .permitAll()
-//                                .hasAuthority(Role.ADMIN.name())
-                                .requestMatchers(HttpMethod.POST, "api/vm/v1/{id}/items")
+                                .requestMatchers(HttpMethod.GET, "api/order")
                                 .permitAll()
 //                                .hasAuthority(Role.ADMIN.name())
                                 .anyRequest().hasAuthority(Role.USER.name())
@@ -59,14 +60,17 @@ public class SecurityConfig {
                             if (
                                     !path.equals("/api/auth/sign-up") &&
                                             !path.equals("/api/auth/sign-in") &&
-                                            !path.equals("/api/auth/refresh")
+                                            !path.equals("/api/auth/refresh") &&
+                                            !path.equals("/api/order/stripe-webhook") &&
+                                            !path.equals("/api/order")
+
                             ) {
                                 final var auth = SecurityContextHolder.getContext().getAuthentication();
-                                final var jwt = (Jwt) auth.getPrincipal();
-
-                                final var isBlacklisted = jwtService.isBlacklisted(jwt.getTokenValue());
-                                if (isBlacklisted) {
-                                    ((HttpServletResponse) response).sendError(HttpServletResponse.SC_UNAUTHORIZED, "Expired token.");
+                                if (auth.getPrincipal() instanceof final Jwt jwt) {
+                                    final var isBlacklisted = jwtService.isBlacklisted(jwt.getTokenValue());
+                                    if (isBlacklisted) {
+                                        ((HttpServletResponse) response).sendError(HttpServletResponse.SC_UNAUTHORIZED, "Expired token.");
+                                    }
                                 }
                             }
 

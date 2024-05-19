@@ -32,6 +32,17 @@ public class AuthController {
         );
     }
 
+//    TODO implement
+    @PostMapping("/google")
+    public ResponseEntity<JWTPair> googelAuth(
+            @RequestBody @Valid RegisterCommand registerCommand
+    ) {
+        final var jwtPair = authService.register(registerCommand);
+        return ResponseEntity.ok(
+                new JWTPair(jwtPair[0], jwtPair[1])
+        );
+    }
+
     @PostMapping("/sign-in")
     public ResponseEntity<JWTPair> singIn(
             @RequestBody @Valid LoginCommand loginCommand

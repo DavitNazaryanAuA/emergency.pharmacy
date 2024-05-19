@@ -6,12 +6,16 @@ import com.capstone.emergency.pharmacy.core.vending.service.OrderService;
 import com.capstone.emergency.pharmacy.core.vending.service.VendingMachineService;
 import com.capstone.emergency.pharmacy.core.vending.service.model.OrderItemsCommand;
 import com.capstone.emergency.pharmacy.rest.controller.vending.model.OrderResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonSyntaxException;
 import com.stripe.exception.SignatureVerificationException;
+import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.StripeObject;
 import com.stripe.model.checkout.Session;
+import com.stripe.net.RequestOptions;
 import com.stripe.net.Webhook;
+import com.stripe.param.checkout.SessionCreateParams;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,9 +36,13 @@ public class OrderController {
 
     private final OrderService orderService;
     private final VendingMachineService vendingMachineService;
+    private final ObjectMapper objectMapper;
 
     @Value("${stripe.endpoint.secret}")
-    private final String webHookEndpointSecret;
+    private String webHookEndpointSecret;
+
+    @Value("${stripe.api.key}")
+    private String apiKey;
 
     @PostMapping
     public ResponseEntity<OrderResponse> orderItems(
@@ -67,10 +75,8 @@ public class OrderController {
     @PostMapping("/stripe-webhook")
     public ResponseEntity<Void> checkOut(
             @RequestBody String paymentEventJson,
-            @RequestHeader("Stripe-Signature") String signatureHeader
+            @RequestHeader("Signature-header") String signatureHeader
     ) {
-        System.out.println(paymentEventJson);
-        System.out.println(signatureHeader);
         Event event;
         try {
             event = Webhook.constructEvent(paymentEventJson, signatureHeader, webHookEndpointSecret);
@@ -87,6 +93,48 @@ public class OrderController {
             orderService.checkOut(orderId);
         } else {
             throw new BadRequestException("Unhandled stripe event type");
+        }
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/checkout-session")
+    public ResponseEntity<Void> session() {
+        SessionCreateParams params =
+                SessionCreateParams.builder()
+                        .setSuccessUrl("https://example.com/success")
+                        .addLineItem(
+                                SessionCreateParams.LineItem.builder()
+                                        .setPriceData(
+                                                SessionCreateParams.LineItem.PriceData.builder()
+                                                        .setCurrency("usd")
+                                                        .setUnitAmount(1000L)
+                                                        .setProductData(
+                                                                SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                                                        .setName("Products")
+                                                                        .build()
+                                                        )
+                                                        .build()
+                                        )
+                                        .setQuantity(2L)
+                                        .build()
+                        )
+                        .setClientReferenceId("id")
+                        .setMode(SessionCreateParams.Mode.PAYMENT)
+                        .build();
+        try {
+            Session session = Session.create(params, RequestOptions.builder().setApiKey(apiKey).build() );
+            System.out.println(session);
+
+            Thread.sleep( 5000);
+
+            final var retrieved = Session.retrieve(session.getId(), RequestOptions.builder().setApiKey(apiKey).build());
+            System.out.println(retrieved);
+        } catch (StripeException e) {
+            System.out.println(e.getMessage());
+            System.out.println("Error creating session");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
         return ResponseEntity.ok().build();
