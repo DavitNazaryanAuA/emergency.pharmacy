@@ -6,6 +6,17 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record OrderResponse(
         String orderId,
-        Double total
+        Double total,
+        StripeData paymentData
 ) {
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record StripeData(
+            String paymentIntentSecret,
+            String ephemeralKey,
+            String customerId,
+            String publishableKey
+    ) {
+
+    }
 }

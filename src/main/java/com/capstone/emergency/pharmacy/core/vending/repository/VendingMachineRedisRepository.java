@@ -30,7 +30,7 @@ public class VendingMachineRedisRepository {
         }
 
         valueOperations.set(key, userId);
-        valueOperations.getOperations().expire(key, 2, TimeUnit.MINUTES);
+        valueOperations.getOperations().expire(key, 2, TimeUnit.DAYS);
     }
 
     public void validateMachineLock(Long vendingMachineId, String userId) {

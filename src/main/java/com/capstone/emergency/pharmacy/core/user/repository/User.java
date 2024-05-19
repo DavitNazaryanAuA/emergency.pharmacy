@@ -15,6 +15,9 @@ public class User {
     @Id
     private String id;
 
+    @Column(name = "stripe_id")
+    private String stripeId;
+
     @Column(name = "name", nullable = false)
     private String name;
 

@@ -2,20 +2,18 @@ package com.capstone.emergency.pharmacy.rest.controller.vending;
 
 
 import com.capstone.emergency.pharmacy.core.error.BadRequestException;
+import com.capstone.emergency.pharmacy.core.error.NotFoundException;
+import com.capstone.emergency.pharmacy.core.vending.repository.mongo.model.Order;
 import com.capstone.emergency.pharmacy.core.vending.service.OrderService;
+import com.capstone.emergency.pharmacy.core.vending.service.StripeService;
 import com.capstone.emergency.pharmacy.core.vending.service.VendingMachineService;
 import com.capstone.emergency.pharmacy.core.vending.service.model.OrderItemsCommand;
 import com.capstone.emergency.pharmacy.rest.controller.vending.model.OrderResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonSyntaxException;
 import com.stripe.exception.SignatureVerificationException;
-import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
-import com.stripe.model.StripeObject;
-import com.stripe.model.checkout.Session;
-import com.stripe.net.RequestOptions;
+import com.stripe.model.PaymentIntent;
 import com.stripe.net.Webhook;
-import com.stripe.param.checkout.SessionCreateParams;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,7 +34,7 @@ public class OrderController {
 
     private final OrderService orderService;
     private final VendingMachineService vendingMachineService;
-    private final ObjectMapper objectMapper;
+    private final StripeService stripeService;
 
     @Value("${stripe.endpoint.secret}")
     private String webHookEndpointSecret;
@@ -53,9 +51,12 @@ public class OrderController {
         final var userId = jwt.getSubject();
 
         vendingMachineService.validateMachineLock(command.vendingMachineId(), userId);
-
         final var order = orderService.orderItems(userId, command);
-        final var response = new OrderResponse(order.getId(), order.getTotal());
+        final var response = new OrderResponse(
+                order.getId(),
+                order.getTotal(),
+                stripeService.createPaymentFromOrder(order)
+        );
         return ResponseEntity.ok(response);
     }
 
@@ -67,15 +68,20 @@ public class OrderController {
 
         Consumer<Long> verificationCallback = (Long machineId) -> vendingMachineService.validateMachineLock(machineId, userId);
 
+
         final var order = orderService.orderItemsInCart(userId, verificationCallback);
-        final var response = new OrderResponse(order.getId(), order.getTotal());
+        final var response = new OrderResponse(
+                order.getId(),
+                order.getTotal(),
+                stripeService.createPaymentFromOrder(order)
+        );
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/stripe-webhook")
     public ResponseEntity<Void> checkOut(
             @RequestBody String paymentEventJson,
-            @RequestHeader("Signature-header") String signatureHeader
+            @RequestHeader("stripe-signature") String signatureHeader
     ) {
         Event event;
         try {
@@ -83,60 +89,21 @@ public class OrderController {
         } catch (SignatureVerificationException | JsonSyntaxException ex) {
             throw new BadRequestException(ex.getMessage());
         }
-        System.out.println(event);
-        StripeObject stripeObject = event.getDataObjectDeserializer().getObject().orElseThrow(() -> new BadRequestException("No Stripe event"));
-        System.out.println(stripeObject);
-        if ("checkout.session.completed".equals(event.getType())) {
-            Session session = (Session) stripeObject;
-            System.out.println(session);
-            final var orderId = session.getClientReferenceId();
+
+        final var stripeObject = event.getDataObjectDeserializer().getObject().orElseThrow(() -> new NotFoundException("Stripe object not found"));
+        final var paymentIntent = (PaymentIntent) stripeObject;
+        final var orderId = paymentIntent.getMetadata().get("orderId");
+
+        if ("payment_intent.succeeded".equals(event.getType())) {
             orderService.checkOut(orderId);
+        } else if (
+                "payment_intent.payment_failed".equals(event.getType()) ||
+                        "payment_intent.canceled".equals(event.getType())
+        ) {
+            orderService.setOrderStatus(orderId, Order.Status.CANCELLED);
         } else {
-            throw new BadRequestException("Unhandled stripe event type");
+            throw new IllegalArgumentException("Invalid event type");
         }
-
-        return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("/checkout-session")
-    public ResponseEntity<Void> session() {
-        SessionCreateParams params =
-                SessionCreateParams.builder()
-                        .setSuccessUrl("https://example.com/success")
-                        .addLineItem(
-                                SessionCreateParams.LineItem.builder()
-                                        .setPriceData(
-                                                SessionCreateParams.LineItem.PriceData.builder()
-                                                        .setCurrency("usd")
-                                                        .setUnitAmount(1000L)
-                                                        .setProductData(
-                                                                SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                                                        .setName("Products")
-                                                                        .build()
-                                                        )
-                                                        .build()
-                                        )
-                                        .setQuantity(2L)
-                                        .build()
-                        )
-                        .setClientReferenceId("id")
-                        .setMode(SessionCreateParams.Mode.PAYMENT)
-                        .build();
-        try {
-            Session session = Session.create(params, RequestOptions.builder().setApiKey(apiKey).build() );
-            System.out.println(session);
-
-            Thread.sleep( 5000);
-
-            final var retrieved = Session.retrieve(session.getId(), RequestOptions.builder().setApiKey(apiKey).build());
-            System.out.println(retrieved);
-        } catch (StripeException e) {
-            System.out.println(e.getMessage());
-            System.out.println("Error creating session");
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
         return ResponseEntity.ok().build();
     }
 }

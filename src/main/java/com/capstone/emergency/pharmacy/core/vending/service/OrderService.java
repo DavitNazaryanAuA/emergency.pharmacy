@@ -28,6 +28,12 @@ public class OrderService {
     private final CartRepository cartRepository;
     private final CartService cartService;
 
+    public void setOrderStatus(String orderId, Order.Status status) {
+        final var order = orderRepository.findById(orderId).orElseThrow(() -> new NotFoundException("Order not found"));
+        order.setStatus(status);
+        orderRepository.save(order);
+    }
+
     public Order orderItems(
             String userId,
             OrderItemsCommand orderItemsCommand
@@ -92,6 +98,8 @@ public class OrderService {
                 .map(CompletableFuture::join)
                 .close();
 
+        order.setStatus(Order.Status.COMPLETE);
+        orderRepository.save(order);
         cartService.deleteCart(userId);
     }
 

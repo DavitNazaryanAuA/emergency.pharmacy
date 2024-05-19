@@ -37,13 +37,19 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                                 .requestMatchers(HttpMethod.POST, "api/auth/**")
                                 .permitAll()
-                                .requestMatchers(HttpMethod.POST, "api/item/")
-                        .hasAuthority(Role.ADMIN.name())
+                                .requestMatchers(HttpMethod.POST, "api/item")
+                                .permitAll()
+
+//                        .hasAuthority(Role.ADMIN.name())
                                 .requestMatchers(HttpMethod.POST, "api/item/product")
-                                .hasAuthority(Role.ADMIN.name())
-                                .requestMatchers(HttpMethod.POST, "api/vm/")
-                                .hasAuthority(Role.ADMIN.name())
+                                .permitAll()
+
+//                                .hasAuthority(Role.ADMIN.name())
+                                .requestMatchers(HttpMethod.POST, "api/vm")
+                                .permitAll()
+//                                .hasAuthority(Role.ADMIN.name())
                                 .requestMatchers(HttpMethod.POST, "api/vm/{id}/items")
+
                                 .permitAll()
                                 .requestMatchers(HttpMethod.POST, "api/order/stripe-webhook")
                                 .permitAll()
