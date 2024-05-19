@@ -36,6 +36,20 @@ public class VendingMachineService {
     private final VendingMachineRedisRepository vendingMachineRedisRepository;
     private final VMMapper mapper;
 
+    public List<VendingMachine> searchByProduct(
+            double curLong,
+            double curLat,
+            String productName
+    ) {
+        return repository.getNearByVMsHavingProduct(
+                productName,
+                curLong, curLat
+                )
+                .stream()
+                .map(mapper::toVendingMachine)
+                .toList();
+    }
+
     public VendingMachine registerVendingMachine(Location location) {
         final var locationEntity = mapper.toLocationEntity(location);
         final var machine = VendingMachineEntity

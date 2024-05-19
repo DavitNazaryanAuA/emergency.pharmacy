@@ -7,6 +7,7 @@ import com.capstone.emergency.pharmacy.core.vending.service.model.VendingMachine
 import com.capstone.emergency.pharmacy.rest.controller.vending.model.model.VendingMachineDtoMapper;
 import com.capstone.emergency.pharmacy.rest.controller.vending.model.model.VendingMachineLoadedItemsResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.validator.constraints.Range;
 import org.springframework.http.ResponseEntity;
@@ -27,19 +28,34 @@ public class VendingMachineController {
     private final VendingMachineService service;
     private final VendingMachineDtoMapper mapper;
 
+    @GetMapping("/items")
+    public ResponseEntity<List<VendingMachine>> search(
+            @RequestParam("long")
+            @Range(min = -180, max = 180, message = "Longitude must be in a value between -180 and 180")
+                    double curLong,
+            @RequestParam("lat")
+            @Range(min = -180, max = 180, message = "Latitude must be in a value between -90 and 90")
+                    double curLat,
+            @RequestParam("productName") @NotBlank String productName
+    ) {
+        return ResponseEntity.ok(
+                service.searchByProduct(curLong, curLat, productName)
+        );
+    }
+
     @GetMapping
     public ResponseEntity<List<VendingMachine>> getVmsInLocation(
             @RequestParam("swLong")
             @Range(min = -180, max = 180, message = "Longitude must be in a value between -180 and 180")
                     double swLong,
             @RequestParam("swLat")
-            @Range(min = -180, max = 180, message = "Latitude must be in a value between -90 and 90")
+            @Range(min = -90, max = 90, message = "Latitude must be in a value between -90 and 90")
                     double swLat,
             @RequestParam("neLong")
             @Range(min = -180, max = 180, message = "Longitude must be in a value between -180 and 180")
                     double neLong,
             @RequestParam("neLat")
-            @Range(min = -180, max = 180, message = "Latitude must be in a value between -90 and 90")
+            @Range(min = -90, max = 90, message = "Latitude must be in a value between -90 and 90")
                     double neLat
     ) {
         return ResponseEntity.ok(

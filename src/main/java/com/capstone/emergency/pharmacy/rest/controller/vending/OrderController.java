@@ -50,8 +50,11 @@ public class OrderController {
         final var jwt = (Jwt) auth.getPrincipal();
         final var userId = jwt.getSubject();
 
+        System.out.println("token: " + jwt);
+        System.out.println("user: " + userId);
         vendingMachineService.validateMachineLock(command.vendingMachineId(), userId);
         final var order = orderService.orderItems(userId, command);
+        System.out.println(order);
         final var response = new OrderResponse(
                 order.getId(),
                 order.getTotal(),

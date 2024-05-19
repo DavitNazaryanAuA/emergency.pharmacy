@@ -31,5 +31,17 @@ public interface VendingMachineRepository extends JpaRepository<VendingMachineEn
             double neLat
     );
 
+    @Query(
+            "SELECT vm " +
+                    "FROM VendingMachineEntity vm join VendingMachineItem vmItem ON vm.id = vmItem.vendingMachineId " +
+                    "WHERE vmItem.item.product.name LIKE :productName% " +
+                    "ORDER BY SQRT( FUNCTION('POWER', :curLong - vm.location.longitude, 2) + FUNCTION('POWER', :curLat - vm.location.latitude, 2) ) ASC"
+    )
+    List<VendingMachineEntity> getNearByVMsHavingProduct(
+            String productName,
+            double curLong,
+            double curLat
+    );
+
     Optional<VendingMachineEntity> findByLocation(VendingMachineEntity.Location location);
 }

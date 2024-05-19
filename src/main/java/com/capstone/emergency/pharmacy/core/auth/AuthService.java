@@ -4,6 +4,7 @@ import com.capstone.emergency.pharmacy.core.auth.jwt.JwtService;
 import com.capstone.emergency.pharmacy.core.auth.model.LoginCommand;
 import com.capstone.emergency.pharmacy.core.auth.model.RegisterCommand;
 import com.capstone.emergency.pharmacy.core.error.BadRequestException;
+import com.capstone.emergency.pharmacy.core.error.NotFoundException;
 import com.capstone.emergency.pharmacy.core.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,7 +34,10 @@ public class AuthService {
     }
 
     public String[] login(LoginCommand loginCommand) {
-        final var user = userService.findByEmailAndPassword(loginCommand.email(), loginCommand.password());
+        final var user = userService.findByEmail(loginCommand.email()).orElseThrow(() -> new NotFoundException("Invalid email or password"));
+        if (!passwordEncoder.matches(loginCommand.password(), user.getPassword())) {
+            throw new NotFoundException("Invalid email or password");
+        }
         return jwtService.accessRefreshPair(user);
     }
 

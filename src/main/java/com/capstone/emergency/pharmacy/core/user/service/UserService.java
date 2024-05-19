@@ -24,11 +24,6 @@ public class UserService {
         return repository.findById(id).orElseThrow(() -> new NotFoundException("User not found with id: " + id));
     }
 
-    public User findByEmailAndPassword(String email, String password) {
-        return repository.findByEmailAndPassword(email, password)
-                .orElseThrow(() -> new NotFoundException("Invalid email or password"));
-    }
-
     public User addUser(
             String firstName,
             String lastName,

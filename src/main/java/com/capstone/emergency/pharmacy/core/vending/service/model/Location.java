@@ -8,7 +8,7 @@ import org.hibernate.validator.constraints.Range;
 public record Location(
         @Range(min = -180, max = 180, message = "Longitude must be in a value between -180 and 180")
         double longitude,
-        @Range(min = -180, max = 180, message = "Latitude must be in a value between -90 and 90")
+        @Range(min = -90, max = 90, message = "Latitude must be in a value between -90 and 90")
         double latitude
 ) {
 }
