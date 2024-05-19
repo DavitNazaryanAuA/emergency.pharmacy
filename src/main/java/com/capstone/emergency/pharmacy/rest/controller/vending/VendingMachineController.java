@@ -3,6 +3,7 @@ package com.capstone.emergency.pharmacy.rest.controller.vending;
 import com.capstone.emergency.pharmacy.core.vending.service.VendingMachineService;
 import com.capstone.emergency.pharmacy.core.vending.service.model.LoadItemsCommand;
 import com.capstone.emergency.pharmacy.core.vending.service.model.Location;
+import com.capstone.emergency.pharmacy.core.vending.service.model.RegisterMachineCommand;
 import com.capstone.emergency.pharmacy.core.vending.service.model.VendingMachine;
 import com.capstone.emergency.pharmacy.rest.controller.vending.model.model.VendingMachineDtoMapper;
 import com.capstone.emergency.pharmacy.rest.controller.vending.model.model.VendingMachineLoadedItemsResponse;
@@ -65,10 +66,10 @@ public class VendingMachineController {
 
     @PostMapping
     public ResponseEntity<VendingMachine> registerVendingMachine(
-            @RequestBody @Valid Location location
+            @RequestBody @Valid RegisterMachineCommand registerMachineCommand
     ) {
         return ResponseEntity.ok(
-                service.registerVendingMachine(location)
+                service.registerVendingMachine(registerMachineCommand)
         );
     }
 

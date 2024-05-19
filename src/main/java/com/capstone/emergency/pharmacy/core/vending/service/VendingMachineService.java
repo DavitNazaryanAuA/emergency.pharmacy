@@ -11,7 +11,7 @@ import com.capstone.emergency.pharmacy.core.vending.repository.model.VendingMach
 import com.capstone.emergency.pharmacy.core.vending.repository.mongo.ReservationRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.mongo.model.Reservation;
 import com.capstone.emergency.pharmacy.core.vending.service.model.LoadItemsCommand;
-import com.capstone.emergency.pharmacy.core.vending.service.model.Location;
+import com.capstone.emergency.pharmacy.core.vending.service.model.RegisterMachineCommand;
 import com.capstone.emergency.pharmacy.core.vending.service.model.VendingMachine;
 import com.capstone.emergency.pharmacy.core.vending.service.model.mapper.VMMapper;
 import lombok.RequiredArgsConstructor;
@@ -42,18 +42,22 @@ public class VendingMachineService {
             String productName
     ) {
         return repository.getNearByVMsHavingProduct(
-                productName,
-                curLong, curLat
+                        productName,
+                        curLong, curLat
                 )
                 .stream()
                 .map(mapper::toVendingMachine)
                 .toList();
     }
 
-    public VendingMachine registerVendingMachine(Location location) {
-        final var locationEntity = mapper.toLocationEntity(location);
+    public VendingMachine registerVendingMachine(RegisterMachineCommand registerCommand) {
+        final var locationEntity = mapper.toLocationEntity(registerCommand.location());
         final var machine = VendingMachineEntity
                 .builder()
+                .address(
+                        VendingMachineEntity.Address.builder()
+                                .country(registerCommand.country()).city(registerCommand.city()).address(registerCommand.address()).build()
+                )
                 .location(locationEntity)
                 .build();
 

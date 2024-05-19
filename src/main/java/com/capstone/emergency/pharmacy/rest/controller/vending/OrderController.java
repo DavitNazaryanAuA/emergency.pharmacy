@@ -1,25 +1,16 @@
 package com.capstone.emergency.pharmacy.rest.controller.vending;
 
 
-import com.capstone.emergency.pharmacy.core.error.BadRequestException;
-import com.capstone.emergency.pharmacy.core.error.NotFoundException;
-import com.capstone.emergency.pharmacy.core.vending.repository.mongo.model.Order;
 import com.capstone.emergency.pharmacy.core.vending.service.OrderService;
 import com.capstone.emergency.pharmacy.core.vending.service.StripeService;
 import com.capstone.emergency.pharmacy.core.vending.service.VendingMachineService;
 import com.capstone.emergency.pharmacy.core.vending.service.model.OrderItemsCommand;
 import com.capstone.emergency.pharmacy.rest.controller.vending.model.OrderCreatedResponse;
 import com.capstone.emergency.pharmacy.rest.controller.vending.model.OrderResponse;
-import com.google.gson.JsonSyntaxException;
-import com.stripe.exception.SignatureVerificationException;
-import com.stripe.model.Event;
-import com.stripe.model.PaymentIntent;
-import com.stripe.net.Webhook;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -39,9 +30,6 @@ public class OrderController {
     private final OrderService orderService;
     private final VendingMachineService vendingMachineService;
     private final StripeService stripeService;
-
-    @Value("${stripe.endpoint.secret}")
-    private String webHookEndpointSecret;
 
     @GetMapping
     public ResponseEntity<List<OrderResponse>> orderHistory(
@@ -99,27 +87,7 @@ public class OrderController {
             @RequestBody String paymentEventJson,
             @RequestHeader("stripe-signature") String signatureHeader
     ) {
-        Event event;
-        try {
-            event = Webhook.constructEvent(paymentEventJson, signatureHeader, webHookEndpointSecret);
-        } catch (SignatureVerificationException | JsonSyntaxException ex) {
-            throw new BadRequestException(ex.getMessage());
-        }
-
-        final var stripeObject = event.getDataObjectDeserializer().getObject().orElseThrow(() -> new NotFoundException("Stripe object not found"));
-        final var paymentIntent = (PaymentIntent) stripeObject;
-        final var orderId = paymentIntent.getMetadata().get("orderId");
-
-        if ("payment_intent.succeeded".equals(event.getType())) {
-            orderService.checkOut(orderId);
-        } else if (
-                "payment_intent.payment_failed".equals(event.getType()) ||
-                        "payment_intent.canceled".equals(event.getType())
-        ) {
-            orderService.setOrderStatus(orderId, Order.Status.CANCELLED);
-        } else {
-            throw new IllegalArgumentException("Invalid event type");
-        }
+        stripeService.handlePaymentIntentEvents(paymentEventJson, signatureHeader);
         return ResponseEntity.ok().build();
     }
 }

@@ -5,12 +5,16 @@ import com.capstone.emergency.pharmacy.core.error.NotFoundException;
 import com.capstone.emergency.pharmacy.core.user.repository.UserRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.mongo.model.Order;
 import com.capstone.emergency.pharmacy.rest.controller.vending.model.OrderCreatedResponse;
+import com.google.gson.JsonSyntaxException;
 import com.stripe.Stripe;
+import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.EphemeralKey;
+import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
 import com.stripe.net.RequestOptions;
+import com.stripe.net.Webhook;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.EphemeralKeyCreateParams;
 import com.stripe.param.PaymentIntentCreateParams;
@@ -25,8 +29,39 @@ public class StripeService {
     @Value("${stripe.publishable_key}")
     private String publishableKey;
 
+    @Value("${stripe.endpoint.secret}")
+    private String whSecret;
+
     final private UserRepository userRepository;
     final private RequestOptions requestOptions;
+    final private OrderService orderService;
+
+    public void handlePaymentIntentEvents(String paymentEventJson, String signatureHeader) {
+        Event event;
+        try {
+            event = Webhook.constructEvent(paymentEventJson, signatureHeader, whSecret);
+        } catch (SignatureVerificationException | JsonSyntaxException ex) {
+            throw new BadRequestException(ex.getMessage());
+        }
+
+        final var stripeObject = event.getDataObjectDeserializer().getObject().orElseThrow(() -> new NotFoundException("Stripe object not found"));
+        final var paymentIntent = (PaymentIntent) stripeObject;
+        final var orderId = paymentIntent.getMetadata().get("orderId");
+
+        System.out.println(event);
+        System.out.println(orderId);
+
+        if ("payment_intent.succeeded".equals(event.getType())) {
+            orderService.checkOut(orderId);
+        } else if (
+                "payment_intent.payment_failed".equals(event.getType()) ||
+                        "payment_intent.canceled".equals(event.getType())
+        ) {
+            orderService.setOrderStatus(orderId, Order.Status.CANCELLED);
+        } else {
+            throw new IllegalArgumentException("Invalid event type");
+        }
+    }
 
     public OrderCreatedResponse.StripeData createPaymentFromOrder(Order order) {
 
