@@ -42,5 +42,7 @@ public class Cart {
         private Integer quantity;
         @Field("item_id")
         private Long itemId;
+        @Field("item_name")
+        private String itemName;
     }
 }

@@ -77,6 +77,7 @@ public class CartService {
             cart.getCartItems().add(
                     Cart.CartItem.builder()
                             .itemId(itemId)
+                            .itemName(machineItem.getItem().getProduct().getName())
                             .quantity(quantity + inCart)
                             .build()
             );

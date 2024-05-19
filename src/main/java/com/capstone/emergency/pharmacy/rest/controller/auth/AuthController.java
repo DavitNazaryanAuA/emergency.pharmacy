@@ -3,6 +3,7 @@ package com.capstone.emergency.pharmacy.rest.controller.auth;
 import com.capstone.emergency.pharmacy.core.auth.AuthService;
 import com.capstone.emergency.pharmacy.core.auth.jwt.JwtService;
 import com.capstone.emergency.pharmacy.core.auth.model.LoginCommand;
+import com.capstone.emergency.pharmacy.core.auth.model.RefreshCommand;
 import com.capstone.emergency.pharmacy.core.auth.model.RegisterCommand;
 import com.capstone.emergency.pharmacy.rest.controller.auth.model.JWTPair;
 import jakarta.validation.Valid;
@@ -54,13 +55,18 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<JWTPair> refresh(
-            @RequestBody @NotBlank String refreshToken
-    ) {
-        final var jwtPair = authService.refresh(refreshToken);
-        return ResponseEntity.ok(
-                new JWTPair(jwtPair[0], jwtPair[1])
-        );
+    public ResponseEntity<JWTPair> refresh(@RequestBody @Valid RefreshCommand command) {
+
+        try {
+            final var jwtPair = authService.refresh(command.refreshToken());
+            return ResponseEntity.ok(
+                    new JWTPair(jwtPair[0], jwtPair[1])
+            );
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        return null;
     }
 
     @PostMapping("/refresh/revoke")

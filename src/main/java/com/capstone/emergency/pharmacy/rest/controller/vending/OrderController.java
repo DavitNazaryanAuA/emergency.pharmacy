@@ -8,6 +8,7 @@ import com.capstone.emergency.pharmacy.core.vending.service.OrderService;
 import com.capstone.emergency.pharmacy.core.vending.service.StripeService;
 import com.capstone.emergency.pharmacy.core.vending.service.VendingMachineService;
 import com.capstone.emergency.pharmacy.core.vending.service.model.OrderItemsCommand;
+import com.capstone.emergency.pharmacy.rest.controller.vending.model.OrderCreatedResponse;
 import com.capstone.emergency.pharmacy.rest.controller.vending.model.OrderResponse;
 import com.google.gson.JsonSyntaxException;
 import com.stripe.exception.SignatureVerificationException;
@@ -15,6 +16,8 @@ import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
 import com.stripe.net.Webhook;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +26,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 @Validated
@@ -39,11 +43,21 @@ public class OrderController {
     @Value("${stripe.endpoint.secret}")
     private String webHookEndpointSecret;
 
-    @Value("${stripe.api.key}")
-    private String apiKey;
+    @GetMapping
+    public ResponseEntity<List<OrderResponse>> orderHistory(
+            @RequestParam("page") @NotNull @Positive Integer page
+    ) {
+        final var auth = SecurityContextHolder.getContext().getAuthentication();
+        final var jwt = (Jwt) auth.getPrincipal();
+        final var userId = jwt.getSubject();
+
+        return ResponseEntity.ok(
+                orderService.getUserOrders(userId, page)
+        );
+    }
 
     @PostMapping
-    public ResponseEntity<OrderResponse> orderItems(
+    public ResponseEntity<OrderCreatedResponse> orderItems(
             @RequestBody @Valid OrderItemsCommand command
     ) {
         final var auth = SecurityContextHolder.getContext().getAuthentication();
@@ -54,8 +68,7 @@ public class OrderController {
         System.out.println("user: " + userId);
         vendingMachineService.validateMachineLock(command.vendingMachineId(), userId);
         final var order = orderService.orderItems(userId, command);
-        System.out.println(order);
-        final var response = new OrderResponse(
+        final var response = new OrderCreatedResponse(
                 order.getId(),
                 order.getTotal(),
                 stripeService.createPaymentFromOrder(order)
@@ -64,7 +77,7 @@ public class OrderController {
     }
 
     @PostMapping("/cart")
-    public ResponseEntity<OrderResponse> orderCartItems() {
+    public ResponseEntity<OrderCreatedResponse> orderCartItems() {
         final var auth = SecurityContextHolder.getContext().getAuthentication();
         final var jwt = (Jwt) auth.getPrincipal();
         final var userId = jwt.getSubject();
@@ -73,7 +86,7 @@ public class OrderController {
 
 
         final var order = orderService.orderItemsInCart(userId, verificationCallback);
-        final var response = new OrderResponse(
+        final var response = new OrderCreatedResponse(
                 order.getId(),
                 order.getTotal(),
                 stripeService.createPaymentFromOrder(order)

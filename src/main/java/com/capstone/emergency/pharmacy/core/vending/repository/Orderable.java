@@ -5,4 +5,6 @@ public interface Orderable {
     Long getItemId();
 
     Integer getQuantity();
+
+    String getItemName();
 }

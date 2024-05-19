@@ -43,5 +43,7 @@ public interface VendingMachineRepository extends JpaRepository<VendingMachineEn
             double curLat
     );
 
+    List<VendingMachineEntity> getAllByIdIn(List<Long> ids);
+
     Optional<VendingMachineEntity> findByLocation(VendingMachineEntity.Location location);
 }

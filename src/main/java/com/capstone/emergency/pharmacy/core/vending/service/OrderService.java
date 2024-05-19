@@ -9,7 +9,9 @@ import com.capstone.emergency.pharmacy.core.vending.repository.mongo.CartReposit
 import com.capstone.emergency.pharmacy.core.vending.repository.mongo.OrderRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.mongo.model.Order;
 import com.capstone.emergency.pharmacy.core.vending.service.model.OrderItemsCommand;
+import com.capstone.emergency.pharmacy.rest.controller.vending.model.OrderResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -27,6 +29,37 @@ public class OrderService {
     private final VendingMachineRepository vendingMachineRepository;
     private final CartRepository cartRepository;
     private final CartService cartService;
+
+
+    public List<OrderResponse> getUserOrders(String userId, Integer page) {
+        final var orders = orderRepository.findByUserIdAndStatus(userId, Order.Status.COMPLETE, PageRequest.of(page, 10));
+        final var vmIds = orders.stream().map(order -> Long.valueOf(order.getVendingMachineId())).toList();
+        final var vms = vendingMachineRepository.getAllByIdIn(vmIds).stream()
+                .collect(Collectors.toMap(
+                        vm -> vm.getId().toString(),
+                        vm -> vm.getAddress().getAddress()
+                ));
+
+        return orders.stream().map(order ->
+                new OrderResponse(
+                        order.getId(),
+                        order.getTotal(),
+                        order.getDate(),
+                        new OrderResponse.VMResponse(
+                                Long.valueOf(order.getVendingMachineId()),
+                                vms.get(order.getVendingMachineId())
+                        ),
+                        order.getItems().stream().map(item ->
+                                new OrderResponse.OrderItemResponse(
+                                        Long.valueOf(item.getItemId()),
+                                        item.getItemName(),
+                                        item.getQuantity(),
+                                        item.getPrice()
+                                )
+                        ).toList()
+                )
+        ).toList();
+    }
 
     public void setOrderStatus(String orderId, Order.Status status) {
         final var order = orderRepository.findById(orderId).orElseThrow(() -> new NotFoundException("Order not found"));
@@ -144,6 +177,7 @@ public class OrderService {
                         orderables.stream().map(item ->
                                 Order.OrderItem.builder()
                                         .itemId(item.getItemId().toString())
+                                        .itemName(item.getItemName())
                                         .price(
                                                 orderItemsPrices.get(item.getItemId())
                                         )

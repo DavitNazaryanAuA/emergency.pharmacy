@@ -75,6 +75,7 @@ public class JwtService {
         ).orElseThrow(() -> new NotFoundException("Refresh token not found for user with id: " + decoded.getSubject()));
 
         token.setIsRevoked(true);
+        tokenRedisRepository.blacklistAccessToken(token.getAccessToken());
         refreshTokenRepository.save(token);
     }
 

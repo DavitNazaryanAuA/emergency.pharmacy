@@ -4,7 +4,7 @@ import com.capstone.emergency.pharmacy.core.error.BadRequestException;
 import com.capstone.emergency.pharmacy.core.error.NotFoundException;
 import com.capstone.emergency.pharmacy.core.user.repository.UserRepository;
 import com.capstone.emergency.pharmacy.core.vending.repository.mongo.model.Order;
-import com.capstone.emergency.pharmacy.rest.controller.vending.model.OrderResponse;
+import com.capstone.emergency.pharmacy.rest.controller.vending.model.OrderCreatedResponse;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
@@ -28,7 +28,7 @@ public class StripeService {
     final private UserRepository userRepository;
     final private RequestOptions requestOptions;
 
-    public OrderResponse.StripeData createPaymentFromOrder(Order order) {
+    public OrderCreatedResponse.StripeData createPaymentFromOrder(Order order) {
 
         final var user = userRepository.findById(order.getUserId())
                 .orElseThrow(() -> new NotFoundException("User not found"));
@@ -67,7 +67,7 @@ public class StripeService {
                     requestOptions
             );
 
-            return new OrderResponse.StripeData(
+            return new OrderCreatedResponse.StripeData(
                     paymentIntent.getClientSecret(),
                     EphemeralKey.create(
                             EphemeralKeyCreateParams.builder()

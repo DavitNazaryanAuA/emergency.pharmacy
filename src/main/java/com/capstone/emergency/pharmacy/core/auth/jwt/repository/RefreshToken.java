@@ -19,7 +19,7 @@ public class RefreshToken {
     @Column(name = "access_token", nullable = false, columnDefinition = "TEXT")
     private String accessToken;
 
-    @Column(name = "token", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "token", nullable = false, columnDefinition = "TEXT", unique = true)
     private String token;
 
     @Column(name = "is_revoked", nullable = false)

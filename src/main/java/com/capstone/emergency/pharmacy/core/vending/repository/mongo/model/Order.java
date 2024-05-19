@@ -48,6 +48,9 @@ public class Order {
         @Field("item_id")
         private String itemId;
 
+        @Field("item_name")
+        private String itemName;
+
         @Field("quantity")
         private Integer quantity;
 

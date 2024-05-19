@@ -31,6 +31,14 @@ public class VendingMachineEntity {
     })
     private Location location;
 
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "country", column = @Column(name = "country", nullable = false)),
+            @AttributeOverride(name = "city", column = @Column(name = "city", nullable = false)),
+            @AttributeOverride(name = "address", column = @Column(name = "address", nullable = false))
+    })
+    private Address address;
+
     @CreatedDate
     @Column(insertable = false)
     private Date createdAt;
@@ -48,5 +56,17 @@ public class VendingMachineEntity {
     public static class Location {
         private Double longitude;
         private Double latitude;
+    }
+
+    @Embeddable
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @ToString
+    public static class Address {
+        private String country;
+        private String city;
+        private String address;
     }
 }
