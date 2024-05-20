@@ -2,6 +2,7 @@ package com.capstone.emergency.pharmacy.core.auth;
 
 import com.capstone.emergency.pharmacy.core.auth.jwt.JwtService;
 import com.capstone.emergency.pharmacy.core.auth.model.LoginCommand;
+import com.capstone.emergency.pharmacy.core.auth.model.Oauth2ExternalLoginCommand;
 import com.capstone.emergency.pharmacy.core.auth.model.RegisterCommand;
 import com.capstone.emergency.pharmacy.core.email.model.EmailDto;
 import com.capstone.emergency.pharmacy.core.email.service.EmailService;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -38,9 +40,12 @@ public class AuthService {
                 registerCommand.firstName(),
                 registerCommand.lastName(),
                 registerCommand.email(),
-                passwordEncoder.encode(registerCommand.password())
+                passwordEncoder.encode(registerCommand.password()),
+                null,
+                null
         );
 
+        sendEmailVerifyEmail(user);
         return jwtService.accessRefreshPair(user);
     }
 
@@ -49,7 +54,38 @@ public class AuthService {
         if (!passwordEncoder.matches(loginCommand.password(), user.getPassword())) {
             throw new NotFoundException("Invalid email or password");
         }
-        sendEmailVerifyEmail(user);
+        return jwtService.accessRefreshPair(user);
+    }
+
+    public String[] googleLogin(Oauth2ExternalLoginCommand command) {
+        final var googleId = command.serviceId();
+        var user = userService.findByGoogleId(googleId);
+        if (user == null) {
+            user = userService.addUser(
+                    command.firstName(),
+                    command.lastName(),
+                    command.email(),
+                    UUID.randomUUID().toString(),
+                    googleId,
+                    null
+            );
+        }
+        return jwtService.accessRefreshPair(user);
+    }
+
+    public String[] facebookLogin(Oauth2ExternalLoginCommand command) {
+        final var facebookId = command.serviceId();
+        var user = userService.findByFacebookId(facebookId);
+        if (user == null) {
+            user = userService.addUser(
+                    command.firstName(),
+                    command.lastName(),
+                    command.email(),
+                    UUID.randomUUID().toString(),
+                    null,
+                    facebookId
+            );
+        }
         return jwtService.accessRefreshPair(user);
     }
 

@@ -2,11 +2,11 @@ package com.capstone.emergency.pharmacy.rest.controller.auth;
 
 import com.capstone.emergency.pharmacy.core.auth.AuthService;
 import com.capstone.emergency.pharmacy.core.auth.jwt.JwtService;
+import com.capstone.emergency.pharmacy.core.auth.model.Oauth2ExternalLoginCommand;
 import com.capstone.emergency.pharmacy.core.auth.model.LoginCommand;
 import com.capstone.emergency.pharmacy.core.auth.model.RefreshCommand;
 import com.capstone.emergency.pharmacy.core.auth.model.RegisterCommand;
 import com.capstone.emergency.pharmacy.rest.controller.auth.model.JWTPair;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -33,12 +33,21 @@ public class AuthController {
         );
     }
 
-    //    TODO implement
     @PostMapping("/google")
     public ResponseEntity<JWTPair> googelAuth(
-            @RequestBody @Valid RegisterCommand registerCommand
+            @RequestBody @Valid Oauth2ExternalLoginCommand command
     ) {
-        final var jwtPair = authService.register(registerCommand);
+        final var jwtPair = authService.googleLogin(command);
+        return ResponseEntity.ok(
+                new JWTPair(jwtPair[0], jwtPair[1])
+        );
+    }
+
+    @PostMapping("/facebook")
+    public ResponseEntity<JWTPair> facebookAuth(
+            @RequestBody @Valid Oauth2ExternalLoginCommand command
+    ) {
+        final var jwtPair = authService.facebookLogin(command);
         return ResponseEntity.ok(
                 new JWTPair(jwtPair[0], jwtPair[1])
         );

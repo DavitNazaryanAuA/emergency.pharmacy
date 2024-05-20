@@ -26,6 +26,14 @@ public class UserService {
         return repository.findByEmail(email);
     }
 
+    public User findByGoogleId(String googleId) {
+        return repository.findByGoogleId(googleId);
+    }
+
+    public User findByFacebookId(String googleId) {
+        return repository.findByFacebookId(googleId);
+    }
+
     public User findById(String id) {
         return repository.findById(id).orElseThrow(() -> new NotFoundException("User not found with id: " + id));
     }
@@ -34,7 +42,9 @@ public class UserService {
             String firstName,
             String lastName,
             String email,
-            String password
+            String password,
+            String googleId,
+            String facebookId
     ) {
         return repository.save(
                 User.builder()
@@ -45,6 +55,8 @@ public class UserService {
                         .password(password)
                         .verified(false)
                         .role(Role.USER)
+                        .googleId(googleId)
+                        .facebookId(facebookId)
                         .build()
         );
     }

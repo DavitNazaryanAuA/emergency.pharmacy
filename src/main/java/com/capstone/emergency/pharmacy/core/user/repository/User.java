@@ -19,6 +19,12 @@ public class User {
     @Column(name = "stripe_id")
     private String stripeId;
 
+    @Column(name = "google_id")
+    private String googleId;
+
+    @Column(name = "facebook_id")
+    private String facebookId;
+
     @Column(name = "name", nullable = false)
     private String name;
 
