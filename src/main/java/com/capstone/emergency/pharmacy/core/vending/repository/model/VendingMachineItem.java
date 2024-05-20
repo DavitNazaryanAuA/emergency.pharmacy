@@ -14,7 +14,7 @@ import lombok.*;
 @Table(name = "vending_machine_item", indexes = @Index(name = "idx_machineId_itemId", columnList = "vendingMachineId, item_id", unique = true))
 public class VendingMachineItem {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Long id;
 

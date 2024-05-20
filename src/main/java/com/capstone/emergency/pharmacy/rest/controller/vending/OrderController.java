@@ -1,6 +1,8 @@
 package com.capstone.emergency.pharmacy.rest.controller.vending;
 
 
+import com.capstone.emergency.pharmacy.core.email.model.EmailDto;
+import com.capstone.emergency.pharmacy.core.email.service.EmailService;
 import com.capstone.emergency.pharmacy.core.vending.service.OrderService;
 import com.capstone.emergency.pharmacy.core.vending.service.StripeService;
 import com.capstone.emergency.pharmacy.core.vending.service.VendingMachineService;
@@ -33,6 +35,7 @@ public class OrderController {
     private final OrderService orderService;
     private final VendingMachineService vendingMachineService;
     private final StripeService stripeService;
+    private final EmailService emailService;
     final private RequestOptions requestOptions;
 
 
@@ -57,8 +60,6 @@ public class OrderController {
         final var jwt = (Jwt) auth.getPrincipal();
         final var userId = jwt.getSubject();
 
-        System.out.println("token: " + jwt);
-        System.out.println("user: " + userId);
         vendingMachineService.validateMachineLock(command.vendingMachineId(), userId);
         final var order = orderService.orderItems(userId, command);
         final var response = new OrderCreatedResponse(
@@ -76,7 +77,6 @@ public class OrderController {
         final var userId = jwt.getSubject();
 
         Consumer<Long> verificationCallback = (Long machineId) -> vendingMachineService.validateMachineLock(machineId, userId);
-
 
         final var order = orderService.orderItemsInCart(userId, verificationCallback);
         final var response = new OrderCreatedResponse(
@@ -101,15 +101,25 @@ public class OrderController {
             @RequestParam("id") String intentId
     ) throws StripeException {
 
-        final var intent = PaymentIntent.retrieve(intentId, requestOptions);
-//        intent.confirm(
-//                PaymentIntentConfirmParams.builder()
-//                        .setPaymentMethod("pm_card_visa")
-//                        .build(),
-//                requestOptions
-//        );
+//        final var intent = PaymentIntent.retrieve(intentId, requestOptions);
+////        intent.confirm(
+////                PaymentIntentConfirmParams.builder()
+////                        .setPaymentMethod("pm_card_visa")
+////                        .build(),
+////                requestOptions
+////        );
+//
+//        intent.cancel(requestOptions);
 
-        intent.cancel(requestOptions);
+        try {
+            emailService.sendEmail(EmailDto.builder()
+                    .subject("TEST")
+                    .text("hello")
+                    .emailTo("davnazaryan17@gmail.com")
+                    .build());
+        }catch (Exception e) {
+        }
+
 
         return ResponseEntity.ok().build();
     }

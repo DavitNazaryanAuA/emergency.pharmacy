@@ -158,6 +158,6 @@ public class VendingMachineService {
     }
 
     public void validateMachineLock(Long vendingMachineId, String userId) {
-        vendingMachineRedisRepository.validateMachineLock(vendingMachineId, userId);
+//        vendingMachineRedisRepository.validateMachineLock(vendingMachineId, userId);
     }
 }

@@ -3,16 +3,19 @@ package com.capstone.emergency.pharmacy.core.auth.jwt;
 import com.capstone.emergency.pharmacy.core.auth.jwt.repository.RefreshToken;
 import com.capstone.emergency.pharmacy.core.auth.jwt.repository.RefreshTokenRepository;
 import com.capstone.emergency.pharmacy.core.auth.jwt.repository.TokenRedisRepository;
+import com.capstone.emergency.pharmacy.core.error.ForbiddenException;
 import com.capstone.emergency.pharmacy.core.error.NotFoundException;
 import com.capstone.emergency.pharmacy.core.error.UnauthorizedException;
 import com.capstone.emergency.pharmacy.core.user.repository.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -27,12 +30,11 @@ public class JwtService {
     private Integer accessTokenExpMinutes;
 
     @Value("${jwt.refresh.exp.days}")
-    private Integer refreshTokenExpMinutes;
+    private Integer refreshTokenExpDays;
 
     public String[] accessRefreshPair(User user) {
-//        TODO change exp to 10 minutes after development
         final var accessExp = Instant.now().plus(accessTokenExpMinutes, ChronoUnit.MINUTES);
-        final var refreshExp = Instant.now().plus(refreshTokenExpMinutes, ChronoUnit.DAYS);
+        final var refreshExp = Instant.now().plus(refreshTokenExpDays, ChronoUnit.DAYS);
 
         final var refreshToken = generateToken(user, refreshExp);
         final var accessToken = generateToken(user, accessExp);
@@ -40,6 +42,7 @@ public class JwtService {
                 .accessToken(accessToken)
                 .token(refreshToken)
                 .user(user)
+                .date(new Date())
                 .isRevoked(false)
                 .build()
         );
@@ -67,6 +70,14 @@ public class JwtService {
         return token;
     }
 
+    public Jwt validateAccessToken(String accessToken) {
+        final var token = jwtDecoder.decode(accessToken);
+        if (token.getExpiresAt().isBefore(Instant.now()) || isBlacklisted(accessToken)) {
+            throw new ForbiddenException("Token expired");
+        }
+        return token;
+    }
+
     public void revokeRefreshToken(String refreshToken) {
         final var decoded = jwtDecoder.decode(refreshToken);
 
@@ -91,7 +102,7 @@ public class JwtService {
         return tokenRedisRepository.isBlackListed(token);
     }
 
-    private String generateToken(User user, Instant exp) {
+    public String generateToken(User user, Instant exp) {
         final var role = user
                 .getRole()
                 .name();
@@ -106,5 +117,18 @@ public class JwtService {
                 .build();
 
         return jwtEncoder.encode(JwtEncoderParameters.from(token)).getTokenValue();
+    }
+
+    public void invalidateLastTokenPair(String userId) {
+        final var refresh = refreshTokenRepository
+                .findRefreshTokenByUser_Id(userId, Sort.by(Sort.Direction.DESC, "date"))
+                .get(0);
+
+        if (refresh != null) {
+            final var access = refresh.getAccessToken();
+            tokenRedisRepository.blacklistAccessToken(access);
+            refresh.setIsRevoked(true);
+            refreshTokenRepository.save(refresh);
+        }
     }
 }

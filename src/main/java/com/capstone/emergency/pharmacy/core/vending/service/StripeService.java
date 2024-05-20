@@ -70,7 +70,6 @@ public class StripeService {
             try {
                 customer = Customer.retrieve(user.getStripeId(), requestOptions);
             } catch (StripeException e) {
-                System.out.println(e);
             }
         }
 
@@ -83,6 +82,8 @@ public class StripeService {
                                 .build(),
                         requestOptions
                 );
+                user.setStripeId(customer.getId());
+                userRepository.save(user);
             } catch (StripeException e) {
                 throw new BadRequestException("Failed to create a stripe customer");
             }
@@ -113,7 +114,6 @@ public class StripeService {
                     publishableKey
             );
         } catch (Exception e) {
-            System.out.println(e.getMessage());
             throw new BadRequestException("Payment intent failed to create");
         }
     }

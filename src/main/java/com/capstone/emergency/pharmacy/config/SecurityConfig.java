@@ -35,46 +35,27 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-                                .requestMatchers(HttpMethod.POST, "api/auth/**")
-                                .permitAll()
-                                .requestMatchers(HttpMethod.POST, "api/item")
-                                .permitAll()
-
-//                        .hasAuthority(Role.ADMIN.name())
-                                .requestMatchers(HttpMethod.POST, "api/item/product")
-                                .permitAll()
-
-//                                .hasAuthority(Role.ADMIN.name())
-                                .requestMatchers(HttpMethod.POST, "api/vm")
-                                .permitAll()
-//                                .hasAuthority(Role.ADMIN.name())
-                                .requestMatchers(HttpMethod.POST, "api/vm/{id}/items")
-
-                                .permitAll()
-                                .requestMatchers(HttpMethod.POST, "api/order/stripe-webhook")
-                                .permitAll()
-                                .requestMatchers(HttpMethod.GET, "api/order")
-                                .permitAll()
-//                                .hasAuthority(Role.ADMIN.name())
-                                .anyRequest().hasAuthority(Role.USER.name())
+                        .requestMatchers("api/auth/**")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.POST, "api/item")
+                        .hasAuthority(Role.ADMIN.name())
+                        .requestMatchers(HttpMethod.POST, "api/item/product")
+                        .hasAuthority(Role.ADMIN.name())
+                        .requestMatchers(HttpMethod.POST, "api/vm")
+                        .hasAuthority(Role.ADMIN.name())
+                        .anyRequest().hasAuthority(Role.USER.name())
                 )
                 .addFilterBefore(
                         (request, response, chain) -> {
                             final var requestCasted = (HttpServletRequest) request;
                             String path = requestCasted.getRequestURI().substring(requestCasted.getContextPath().length());
 
-                            if (
-                                    !path.equals("/api/auth/sign-up") &&
-                                            !path.equals("/api/auth/sign-in") &&
-                                            !path.equals("/api/auth/refresh") &&
-                                            !path.equals("/api/order/stripe-webhook") &&
-                                            !path.equals("/api/order")
-
-                            ) {
+                            if (!path.startsWith("/api/auth")) {
                                 final var auth = SecurityContextHolder.getContext().getAuthentication();
                                 if (auth.getPrincipal() instanceof final Jwt jwt) {
                                     final var isBlacklisted = jwtService.isBlacklisted(jwt.getTokenValue());
                                     if (isBlacklisted) {
+                                        System.out.println("TOKEN BLACKLISTED");
                                         ((HttpServletResponse) response).sendError(HttpServletResponse.SC_UNAUTHORIZED, "Expired token.");
                                     }
                                 }

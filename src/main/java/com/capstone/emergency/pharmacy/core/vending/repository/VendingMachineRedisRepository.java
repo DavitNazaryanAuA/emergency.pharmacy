@@ -37,10 +37,16 @@ public class VendingMachineRedisRepository {
         final var key = lockPrefix + ":" + vendingMachineId;
         final var existing = (String) valueOperations.get(key);
 
-        if (existing == null || !existing.equals(userId)) {
+        if(existing == null) {
             throw new ForbiddenException(
                     "Vending machine is locked for checkout by another user",
                     ApiException.Reason.MACHINE_ALREADY_LOCKED
+            );
+        }
+
+        if (!existing.equals(userId)) {
+            throw new ForbiddenException(
+                    "Please lock the machine before making orders"
             );
         }
     }

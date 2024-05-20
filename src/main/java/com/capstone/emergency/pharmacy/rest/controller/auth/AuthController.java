@@ -6,14 +6,14 @@ import com.capstone.emergency.pharmacy.core.auth.model.LoginCommand;
 import com.capstone.emergency.pharmacy.core.auth.model.RefreshCommand;
 import com.capstone.emergency.pharmacy.core.auth.model.RegisterCommand;
 import com.capstone.emergency.pharmacy.rest.controller.auth.model.JWTPair;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -33,7 +33,7 @@ public class AuthController {
         );
     }
 
-//    TODO implement
+    //    TODO implement
     @PostMapping("/google")
     public ResponseEntity<JWTPair> googelAuth(
             @RequestBody @Valid RegisterCommand registerCommand
@@ -54,6 +54,25 @@ public class AuthController {
         );
     }
 
+    @GetMapping("/verify")
+    public ResponseEntity<Void> emailVerify(
+            @RequestParam("token") String token
+    ) {
+        authService.verifyUserEmail(token);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/verify-retry")
+    public ResponseEntity<Void> retryEmailVerification() {
+        final var auth = SecurityContextHolder.getContext().getAuthentication();
+        final var jwt = (Jwt) auth.getPrincipal();
+        final var userId = jwt.getSubject();
+
+        authService.sendEmailVerifyEmail(userId);
+
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<JWTPair> refresh(@RequestBody @Valid RefreshCommand command) {
 
@@ -63,7 +82,6 @@ public class AuthController {
                     new JWTPair(jwtPair[0], jwtPair[1])
             );
         } catch (Exception e) {
-            System.out.println(e.getMessage());
         }
 
         return null;

@@ -16,6 +16,12 @@ public class UserService {
 
     private final UserRepository repository;
 
+    public void setVerified(String userId) {
+        final var user = findById(userId);
+        user.setVerified(true);
+        repository.save(user);
+    }
+
     public Optional<User> findByEmail(String email) {
         return repository.findByEmail(email);
     }

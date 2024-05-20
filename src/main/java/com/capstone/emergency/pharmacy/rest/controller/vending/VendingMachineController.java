@@ -116,7 +116,9 @@ public class VendingMachineController {
         final var jwt = (Jwt) auth.getPrincipal();
         final var userId = jwt.getSubject();
 
+        System.out.println("Locking");
         service.lockVendingMachine(id, userId);
+        System.out.println("Locked");
         return ResponseEntity.ok().build();
     }
 }
