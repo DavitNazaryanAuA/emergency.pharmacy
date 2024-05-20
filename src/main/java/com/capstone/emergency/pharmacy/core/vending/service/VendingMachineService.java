@@ -47,6 +47,7 @@ public class VendingMachineService {
                 )
                 .stream()
                 .map(mapper::toVendingMachine)
+                .limit(5)
                 .toList();
     }
 

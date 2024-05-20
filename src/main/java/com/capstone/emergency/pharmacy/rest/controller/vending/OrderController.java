@@ -7,6 +7,9 @@ import com.capstone.emergency.pharmacy.core.vending.service.VendingMachineServic
 import com.capstone.emergency.pharmacy.core.vending.service.model.OrderItemsCommand;
 import com.capstone.emergency.pharmacy.rest.controller.vending.model.OrderCreatedResponse;
 import com.capstone.emergency.pharmacy.rest.controller.vending.model.OrderResponse;
+import com.stripe.exception.StripeException;
+import com.stripe.model.PaymentIntent;
+import com.stripe.net.RequestOptions;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -30,6 +33,8 @@ public class OrderController {
     private final OrderService orderService;
     private final VendingMachineService vendingMachineService;
     private final StripeService stripeService;
+    final private RequestOptions requestOptions;
+
 
     @GetMapping
     public ResponseEntity<List<OrderResponse>> orderHistory(
@@ -88,6 +93,24 @@ public class OrderController {
             @RequestHeader("stripe-signature") String signatureHeader
     ) {
         stripeService.handlePaymentIntentEvents(paymentEventJson, signatureHeader);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/stripe/confirm")
+    public ResponseEntity<Void> confirm(
+            @RequestParam("id") String intentId
+    ) throws StripeException {
+
+        final var intent = PaymentIntent.retrieve(intentId, requestOptions);
+//        intent.confirm(
+//                PaymentIntentConfirmParams.builder()
+//                        .setPaymentMethod("pm_card_visa")
+//                        .build(),
+//                requestOptions
+//        );
+
+        intent.cancel(requestOptions);
+
         return ResponseEntity.ok().build();
     }
 }

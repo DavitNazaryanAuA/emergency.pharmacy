@@ -48,9 +48,6 @@ public class StripeService {
         final var paymentIntent = (PaymentIntent) stripeObject;
         final var orderId = paymentIntent.getMetadata().get("orderId");
 
-        System.out.println(event);
-        System.out.println(orderId);
-
         if ("payment_intent.succeeded".equals(event.getType())) {
             orderService.checkOut(orderId);
         } else if (
@@ -94,6 +91,7 @@ public class StripeService {
         try {
             final var paymentIntent = PaymentIntent.create(
                     PaymentIntentCreateParams.builder()
+                            .addPaymentMethodType("card")
                             .putMetadata("orderId", order.getId())
                             .setCustomer(customer.getId())
                             .setAmount(order.getTotal().longValue())

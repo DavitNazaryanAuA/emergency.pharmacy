@@ -6,6 +6,14 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record VendingMachine(
         Long id,
-        Location location
+        Location location,
+        Address address
 ) {
+
+    public record Address(
+            String country,
+            String city,
+            String address
+    ) {
+    }
 }

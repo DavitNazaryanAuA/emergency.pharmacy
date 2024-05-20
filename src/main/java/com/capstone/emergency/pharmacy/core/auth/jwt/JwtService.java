@@ -98,6 +98,7 @@ public class JwtService {
 
         final var token = JwtClaimsSet.builder()
                 .claim("role", role)
+                .claim("emailVerified", user.getVerified())
                 .issuer("self")
                 .issuedAt(Instant.now())
                 .expiresAt(exp)
